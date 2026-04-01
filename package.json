@@ -1,0 +1,16 @@
+{
+  "name": "lire-help",
+  "version": "1.0.0",
+  "description": "LIRE Help — AI tenant operations for light industrial real estate",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
