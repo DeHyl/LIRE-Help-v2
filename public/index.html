@@ -967,6 +967,17 @@
 
     .divider { border: none; border-top: 1px solid var(--gray-2); }
 
+    /* ── Language Toggle ── */
+    .lang-toggle {
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em;
+      color: var(--gray-4); text-decoration: none;
+      border: 1px solid var(--gray-2); border-radius: 8px;
+      padding: 7px 10px; transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .lang-toggle:hover { color: var(--steel); border-color: var(--steel); background: var(--steel-glow); }
+    [data-theme="dark"] .lang-toggle { color: #94A3B8; border-color: #334155; }
+    [data-theme="dark"] .lang-toggle:hover { color: #60A5FA; border-color: #2563EB; background: rgba(37,99,235,0.12); }
+
     /* ── Theme Toggle ── */
     .theme-toggle {
       width: 36px; height: 36px;
@@ -1105,6 +1116,7 @@
   </ul>
   <div style="display:flex;align-items:center;gap:8px;">
     <a href="#concierge" class="nav-cta">Try Demo</a>
+    <a href="/es/" class="lang-toggle" aria-label="Español">ES</a>
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
       <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
       <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
