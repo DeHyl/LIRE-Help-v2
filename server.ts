@@ -56,6 +56,13 @@ async function main() {
     ssl: !isDev ? { rejectUnauthorized: false } : undefined,
   });
 
+  // Debug: test session pool on startup
+  sessionPool.query("SELECT 1 as test").then(() => {
+    console.log("[session] pg Pool connected OK");
+  }).catch((err: unknown) => {
+    console.error("[session] pg Pool connection FAILED:", err);
+  });
+
   app.use(
     session({
       store: new PgSession({
@@ -345,6 +352,43 @@ RESTRICTIONS:
 
   app.get("/api/health", (_req: Request, res: Response) => {
     res.json({ status: "ok", service: "lire-help" });
+  });
+
+  // ─── Diagnostic (temporary) ───────────────────────────────────────────────
+  app.get("/api/debug-session", async (req: Request, res: Response) => {
+    const results: Record<string, unknown> = {};
+    try {
+      // Test 1: Can pg Pool connect?
+      const poolRes = await sessionPool.query("SELECT 1 as connected");
+      results.poolConnect = poolRes.rows[0];
+
+      // Test 2: Does staff_sessions table exist?
+      const tableCheck = await sessionPool.query(
+        "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name='staff_sessions')"
+      );
+      results.staffSessionsTable = tableCheck.rows[0];
+
+      // Test 3: Session object state
+      results.sessionID = req.sessionID;
+      results.sessionExists = !!req.session;
+
+      // Test 4: Try session save
+      (req.session as any).testWrite = Date.now();
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            results.sessionSaveError = String(err);
+            reject(err);
+          } else {
+            results.sessionSave = "OK";
+            resolve();
+          }
+        });
+      });
+    } catch (err: unknown) {
+      results.error = String(err);
+    }
+    res.json(results);
   });
 
   // ─── One-time setup (push schema + seed superadmin) ───────────────────────
