@@ -63,9 +63,9 @@ async function main() {
       cookie: {
         secure: !isDev,
         httpOnly: true,
-        sameSite: isDev ? "lax" : "none",
+        sameSite: "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000,
-        domain: isDev ? undefined : (process.env.COOKIE_DOMAIN ?? ".lire-help.com"),
+        domain: process.env.COOKIE_DOMAIN || undefined,
       },
     }),
   );
