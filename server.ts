@@ -68,7 +68,7 @@ async function main() {
       store: new PgSession({
         pool: sessionPool,
         tableName: "staff_sessions",
-        createTableIfMissing: true,
+        createTableIfMissing: false,
       }),
       secret: process.env.SESSION_SECRET ?? "lire-help-secret-dev",
       resave: false,
@@ -459,6 +459,15 @@ RESTRICTIONS:
         created_at TIMESTAMP NOT NULL DEFAULT now(), last_message_at TIMESTAMP NOT NULL DEFAULT now()
       )`;
       results.push("platform_sessions table OK");
+
+      await sql`CREATE TABLE IF NOT EXISTS staff_sessions (
+        sid VARCHAR NOT NULL COLLATE "default",
+        sess JSON NOT NULL,
+        expire TIMESTAMP(6) NOT NULL,
+        PRIMARY KEY (sid)
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS IDX_session_expire ON staff_sessions (expire)`;
+      results.push("staff_sessions table OK");
 
       // 2. Seed superadmin
       const hash = await bcrypt.hash("LIREhelp2026", 12);
