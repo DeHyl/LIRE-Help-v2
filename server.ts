@@ -19,7 +19,7 @@ async function main() {
 
   app.use(
     helmet({
-      contentSecurityPolicy: isDev ? false : undefined,
+      contentSecurityPolicy: false,
       crossOriginEmbedderPolicy: false,
     }),
   );
