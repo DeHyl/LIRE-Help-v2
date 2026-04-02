@@ -341,6 +341,93 @@ RESTRICTIONS:
     res.json({ status: "ok", service: "lire-help" });
   });
 
+  // ─── One-time setup (push schema + seed superadmin) ───────────────────────
+  // Hit /api/setup?key=LIRE2026 once, then remove this endpoint.
+
+  app.get("/api/setup", async (req: Request, res: Response) => {
+    if (req.query.key !== "LIRE2026") return res.status(403).json({ error: "forbidden" });
+
+    const results: string[] = [];
+    try {
+      const pg = (await import("postgres")).default;
+      const bcrypt = (await import("bcrypt")).default;
+      const sql = pg(process.env.DATABASE_URL!, { ssl: { rejectUnauthorized: false } });
+
+      // 1. Create all tables
+      await sql`CREATE TABLE IF NOT EXISTS tenants (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, plan TEXT NOT NULL DEFAULT 'starter',
+        billing_email TEXT, phone TEXT, country TEXT DEFAULT 'US', timezone TEXT DEFAULT 'America/Los_Angeles',
+        is_active BOOLEAN NOT NULL DEFAULT true, trial_ends_at TIMESTAMP,
+        created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
+      )`;
+      results.push("tenants table OK");
+
+      await sql`CREATE TABLE IF NOT EXISTS properties (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, description TEXT, location TEXT,
+        lat DOUBLE PRECISION, lng DOUBLE PRECISION, tenant_id VARCHAR REFERENCES tenants(id),
+        agent_name TEXT, agent_emoji TEXT, agent_tagline TEXT, agent_greeting TEXT, agent_personality TEXT,
+        branding_json JSONB DEFAULT '{}',
+        created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
+      )`;
+      results.push("properties table OK");
+
+      await sql`CREATE TABLE IF NOT EXISTS agents (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        property_id VARCHAR NOT NULL UNIQUE REFERENCES properties(id), tenant_id VARCHAR REFERENCES tenants(id),
+        name TEXT NOT NULL DEFAULT 'LIRE Agent', emoji TEXT NOT NULL DEFAULT 'LH',
+        tagline TEXT, greeting TEXT, personality TEXT, is_active BOOLEAN NOT NULL DEFAULT true,
+        created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
+      )`;
+      results.push("agents table OK");
+
+      await sql`CREATE TABLE IF NOT EXISTS staff_users (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, name TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'readonly', tenant_id VARCHAR, property_id VARCHAR,
+        is_active BOOLEAN NOT NULL DEFAULT true, whatsapp_number TEXT, last_login_at TIMESTAMP,
+        created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
+      )`;
+      results.push("staff_users table OK");
+
+      await sql`CREATE TABLE IF NOT EXISTS platform_knowledge (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        section TEXT NOT NULL, title TEXT NOT NULL, content TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT now(), updated_at TIMESTAMP NOT NULL DEFAULT now()
+      )`;
+      results.push("platform_knowledge table OK");
+
+      await sql`CREATE TABLE IF NOT EXISTS platform_sessions (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        session_id TEXT NOT NULL UNIQUE, messages JSONB DEFAULT '[]',
+        message_count INTEGER NOT NULL DEFAULT 0, escalated_to_wa BOOLEAN NOT NULL DEFAULT false,
+        is_analyzed BOOLEAN NOT NULL DEFAULT false, summary TEXT,
+        tipo_consulta TEXT, intencion TEXT, tags JSONB DEFAULT '[]',
+        is_lead BOOLEAN NOT NULL DEFAULT false, property_type TEXT,
+        created_at TIMESTAMP NOT NULL DEFAULT now(), last_message_at TIMESTAMP NOT NULL DEFAULT now()
+      )`;
+      results.push("platform_sessions table OK");
+
+      // 2. Seed superadmin
+      const hash = await bcrypt.hash("LIREhelp2026", 12);
+      await sql`
+        INSERT INTO staff_users (email, password_hash, name, role)
+        VALUES ('mune100g@gmail.com', ${hash}, 'Alejandro Dominguez', 'superadmin')
+        ON CONFLICT (email) DO UPDATE SET password_hash = ${hash}, role = 'superadmin', updated_at = now()
+      `;
+      results.push("superadmin seeded OK");
+
+      await sql.end();
+      res.json({ status: "ok", results });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      results.push(`ERROR: ${msg}`);
+      res.status(500).json({ status: "error", results });
+    }
+  });
+
   // ─── Static file serving ──────────────────────────────────────────────────
 
   if (isDev) {
