@@ -15,6 +15,9 @@ async function main() {
   const isDev = process.env.NODE_ENV !== "production";
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
+  // Trust Railway's reverse proxy (needed for secure cookies)
+  app.set("trust proxy", 1);
+
   // ─── Security & parsing ───────────────────────────────────────────────────
 
   app.use(
