@@ -533,8 +533,7 @@ RESTRICTIONS:
       await sql`CREATE INDEX IF NOT EXISTS idx_token_usage_tenant ON token_usage (tenant_id, created_at)`;
       results.push("token_usage table OK");
 
-      await sql`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS monthly_budget_usd TEXT`;
-      results.push("tenants.monthly_budget_usd column OK");
+      try { await sql`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS monthly_budget_usd TEXT`; results.push("tenants.monthly_budget_usd column OK"); } catch(e: any) { results.push("monthly_budget_usd: " + (e.message || "skipped")); }
 
       // 2. Seed superadmin
       const hash = await bcrypt.hash("LIREhelp2026", 12);
