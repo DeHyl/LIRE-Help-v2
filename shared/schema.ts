@@ -18,6 +18,7 @@ export const tenants = pgTable("tenants", {
   timezone: text("timezone").default("America/Los_Angeles"),
   isActive: boolean("is_active").default(true).notNull(),
   trialEndsAt: timestamp("trial_ends_at"),
+  monthlyBudgetUsd: text("monthly_budget_usd"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -131,3 +132,21 @@ export const platformSessions = pgTable("platform_sessions", {
 });
 
 export type PlatformSession = typeof platformSessions.$inferSelect;
+
+// ─── Token Usage ────────────────────────────────────────────────────────────
+
+export const tokenUsage = pgTable("token_usage", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id),
+  propertyId: varchar("property_id").references(() => properties.id),
+  sessionId: text("session_id"),
+  operation: text("operation").notNull(),
+  model: text("model").notNull(),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
+  costUsd: text("cost_usd").notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type TokenUsage = typeof tokenUsage.$inferSelect;
+export type InsertTokenUsage = typeof tokenUsage.$inferInsert;

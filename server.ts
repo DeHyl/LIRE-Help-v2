@@ -94,6 +94,8 @@ async function main() {
   const { default: staffRoutes } = await import("./server/staff-routes.js");
   const { default: knowledgeRoutes } = await import("./server/knowledge-routes.js");
   const { default: platformSessionsRoutes } = await import("./server/platform-sessions-routes.js");
+  const { logTokenUsage } = await import("./server/token-logger.js");
+  const { default: metricsRoutes } = await import("./server/metrics-routes.js");
 
   app.use("/api/auth", authRoutes);
   app.use("/api/properties", propertiesRoutes);
@@ -101,6 +103,7 @@ async function main() {
   app.use("/api/staff", staffRoutes);
   app.use("/api/knowledge", knowledgeRoutes);
   app.use("/api/platform-sessions", platformSessionsRoutes);
+  app.use("/api/admin/metrics", metricsRoutes);
 
   // ─── /api/public/brand ────────────────────────────────────────────────────
 
@@ -334,6 +337,7 @@ RESTRICTIONS:
 
       const data = (await upstream.json()) as {
         content?: Array<{ text?: string }>;
+        usage?: { input_tokens: number; output_tokens: number };
       };
       const raw = data.content?.[0]?.text ?? "";
       const escalate = raw.includes("[ESCALATE]");
@@ -341,6 +345,17 @@ RESTRICTIONS:
 
       if (sessionId) {
         console.log(`[${sessionId}] ${trimmed.length + 1} msgs, escalated: ${escalate}`);
+      }
+
+      // Non-blocking token logging
+      if (data.usage) {
+        logTokenUsage({
+          sessionId: sessionId ?? null,
+          operation: "concierge_chat",
+          model: "claude-haiku-4-5-20251001",
+          inputTokens: data.usage.input_tokens,
+          outputTokens: data.usage.output_tokens,
+        });
       }
 
       res.json({ response, escalate });
@@ -489,6 +504,21 @@ RESTRICTIONS:
       )`;
       await sql`CREATE INDEX IF NOT EXISTS IDX_session_expire ON staff_sessions (expire)`;
       results.push("staff_sessions table OK");
+
+      await sql`CREATE TABLE IF NOT EXISTS token_usage (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        tenant_id VARCHAR, property_id VARCHAR, session_id TEXT,
+        operation TEXT NOT NULL, model TEXT NOT NULL,
+        input_tokens INTEGER NOT NULL DEFAULT 0, output_tokens INTEGER NOT NULL DEFAULT 0,
+        cost_usd TEXT NOT NULL DEFAULT '0',
+        created_at TIMESTAMP NOT NULL DEFAULT now()
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_token_usage_created ON token_usage (created_at)`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_token_usage_tenant ON token_usage (tenant_id, created_at)`;
+      results.push("token_usage table OK");
+
+      await sql`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS monthly_budget_usd TEXT`;
+      results.push("tenants.monthly_budget_usd column OK");
 
       // 2. Seed superadmin
       const hash = await bcrypt.hash("LIREhelp2026", 12);

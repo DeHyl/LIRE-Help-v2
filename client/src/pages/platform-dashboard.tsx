@@ -3,7 +3,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Link } from "wouter";
 import { useState } from "react";
-import { Building2, Bot, ExternalLink, Plus, LogOut, BookMarked, ChevronUp, ChevronDown, X, Loader2, Link2, Save, MessageSquare, Zap, TrendingUp, AlertTriangle, Tag, ChevronRight, UserPlus, Eye, EyeOff } from "lucide-react";
+import { Building2, Bot, ExternalLink, Plus, LogOut, BookMarked, ChevronUp, ChevronDown, X, Loader2, Link2, Save, MessageSquare, Zap, TrendingUp, AlertTriangle, Tag, ChevronRight, UserPlus, Eye, EyeOff, Sun, Moon, BarChart3, DollarSign, Users } from "lucide-react";
 
 interface AgentRow {
   id: string;
@@ -348,6 +348,205 @@ function CreateOwnerModal({ tenant, onClose }: { tenant: TenantRow; onClose: () 
   );
 }
 
+// ─── Metrics Tab ────────────────────────────────────────────────────────────
+
+interface MetricsData {
+  conversations: { total: number; leads: number; escalationRate: number; avgMessages: number; dailyTrend: { date: string; count: number }[] };
+  tokens: { totalInput: number; totalOutput: number; totalCostUsd: string; byModel: { model: string; input: number; output: number; cost: string }[]; dailyCost: { date: string; cost: string }[] };
+  perTenant: { tenantId: string | null; name: string; conversations: number; tokens: number; cost: string; escalationRate: number; monthlyBudgetUsd: string | null }[];
+  projection: { monthlyEstimate: string };
+}
+
+function MetricsTab() {
+  const [period, setPeriod] = useState<7 | 30>(7);
+  const { data, isLoading } = useQuery<MetricsData>({
+    queryKey: ["metrics", period],
+    queryFn: () => api.get(`/api/admin/metrics?days=${period}`),
+    refetchInterval: 60000,
+  });
+
+  if (isLoading || !data) return <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center"><Loader2 className="h-4 w-4 animate-spin" /> Loading metrics...</div>;
+
+  const totalCost = parseFloat(data.tokens.totalCostUsd || "0");
+  const totalTokens = data.tokens.totalInput + data.tokens.totalOutput;
+  const maxDaily = Math.max(...(data.conversations.dailyTrend.map(d => d.count)), 1);
+
+  return (
+    <div className="space-y-6">
+      {/* Period toggle */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Metrics</h2>
+        <div className="flex gap-1 bg-muted rounded-lg p-0.5">
+          {([7, 30] as const).map(d => (
+            <button key={d} onClick={() => setPeriod(d)}
+              className={`text-xs px-3 py-1 rounded-md transition-colors ${period === d ? "bg-background shadow text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
+              {d} days
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="rounded-lg border bg-card p-4">
+          <p className="text-xs text-muted-foreground flex items-center gap-1"><MessageSquare className="h-3 w-3" /> Conversations</p>
+          <p className="text-3xl font-bold mt-1">{data.conversations.total}</p>
+        </div>
+        <div className="rounded-lg border bg-card p-4">
+          <p className="text-xs text-muted-foreground flex items-center gap-1"><Users className="h-3 w-3" /> Leads</p>
+          <p className="text-3xl font-bold mt-1">{data.conversations.leads}</p>
+        </div>
+        <div className="rounded-lg border bg-card p-4">
+          <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" /> Token Cost</p>
+          <p className="text-3xl font-bold mt-1">${totalCost.toFixed(2)}</p>
+        </div>
+        <div className="rounded-lg border bg-card p-4">
+          <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Avg Messages</p>
+          <p className="text-3xl font-bold mt-1">{data.conversations.avgMessages.toFixed(1)}</p>
+        </div>
+      </div>
+
+      {/* Cost breakdown + Daily trend row */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Cost breakdown */}
+        <div className="rounded-lg border bg-card p-4 space-y-3">
+          <h3 className="text-sm font-semibold">Cost Breakdown</h3>
+          {data.tokens.byModel.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No token usage yet</p>
+          ) : (
+            <div className="space-y-2">
+              {data.tokens.byModel.map(m => {
+                const pct = totalCost > 0 ? (parseFloat(m.cost) / totalCost) * 100 : 0;
+                const label = m.model.includes("haiku") ? "Haiku" : m.model.includes("sonnet") ? "Sonnet" : m.model;
+                return (
+                  <div key={m.model}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="font-medium">{label}</span>
+                      <span className="text-muted-foreground">${m.cost} ({pct.toFixed(0)}%)</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.max(pct, 2)}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div className="pt-2 border-t">
+            <p className="text-xs text-muted-foreground">Monthly projection</p>
+            <p className="text-lg font-bold">${data.projection.monthlyEstimate}/mo</p>
+          </div>
+          {totalTokens > 0 && (
+            <p className="text-xs text-muted-foreground">{(totalTokens / 1000).toFixed(1)}K tokens ({(data.tokens.totalInput / 1000).toFixed(1)}K in / {(data.tokens.totalOutput / 1000).toFixed(1)}K out)</p>
+          )}
+        </div>
+
+        {/* Daily trend */}
+        <div className="rounded-lg border bg-card p-4 space-y-3">
+          <h3 className="text-sm font-semibold">Daily Conversations</h3>
+          {data.conversations.dailyTrend.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No data yet</p>
+          ) : (
+            <div className="flex items-end gap-[2px] h-32">
+              {data.conversations.dailyTrend.map(d => {
+                const pct = (d.count / maxDaily) * 100;
+                return (
+                  <div key={d.date} className="flex-1 flex flex-col items-center justify-end h-full group relative">
+                    <div className="w-full bg-primary/80 rounded-t transition-all hover:bg-primary" style={{ height: `${Math.max(pct, 4)}%` }} />
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] bg-foreground text-background px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                      {d.date.slice(5)}: {d.count}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div className="flex justify-between text-[10px] text-muted-foreground">
+            <span>{data.conversations.dailyTrend[0]?.date.slice(5) ?? ""}</span>
+            <span>{data.conversations.dailyTrend[data.conversations.dailyTrend.length - 1]?.date.slice(5) ?? ""}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Per-tenant table */}
+      <div className="rounded-lg border bg-card overflow-hidden">
+        <div className="px-4 py-3 border-b bg-muted/30">
+          <h3 className="text-sm font-semibold">Per-Tenant Usage</h3>
+        </div>
+        {data.perTenant.length === 0 ? (
+          <div className="px-4 py-6 text-center text-xs text-muted-foreground">No tenant data</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-xs text-muted-foreground">
+                <th className="text-left px-4 py-2 font-medium">Tenant</th>
+                <th className="text-right px-4 py-2 font-medium">Conversations</th>
+                <th className="text-right px-4 py-2 font-medium">Tokens</th>
+                <th className="text-right px-4 py-2 font-medium">Cost</th>
+                <th className="text-right px-4 py-2 font-medium">Escalation</th>
+                <th className="px-4 py-2 font-medium w-48">Budget</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.perTenant.map(t => {
+                const budget = parseFloat(t.monthlyBudgetUsd || "0");
+                const cost = parseFloat(t.cost || "0");
+                const budgetPct = budget > 0 ? Math.min((cost / budget) * 100, 100) : 0;
+                const budgetColor = budgetPct > 90 ? "bg-red-500" : budgetPct > 70 ? "bg-amber-500" : "bg-emerald-500";
+                return (
+                  <tr key={t.tenantId ?? "platform"} className="border-b last:border-0 hover:bg-muted/20">
+                    <td className="px-4 py-2.5 font-medium">{t.name}</td>
+                    <td className="px-4 py-2.5 text-right">{t.conversations}</td>
+                    <td className="px-4 py-2.5 text-right">{t.tokens > 1000 ? `${(t.tokens / 1000).toFixed(1)}K` : t.tokens}</td>
+                    <td className="px-4 py-2.5 text-right">${t.cost}</td>
+                    <td className="px-4 py-2.5 text-right">{(t.escalationRate * 100).toFixed(0)}%</td>
+                    <td className="px-4 py-2.5">
+                      {budget > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                            <div className={`h-full ${budgetColor} rounded-full`} style={{ width: `${budgetPct}%` }} />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground w-16 text-right">${t.cost}/${t.monthlyBudgetUsd}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No budget</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Theme Toggle ───────────────────────────────────────────────────────────
+
+function ThemeToggle() {
+  const [dark, setDark] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("lire-theme") === "dark" || (!localStorage.getItem("lire-theme") && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    }
+    return false;
+  });
+
+  const toggle = () => {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("lire-theme", next ? "dark" : "light");
+  };
+
+  return (
+    <button onClick={toggle} className="p-1.5 rounded-md hover:bg-accent transition-colors text-muted-foreground" title="Toggle theme">
+      {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </button>
+  );
+}
+
 export default function PlatformDashboard() {
   const { user, logout } = useAuth();
 
@@ -381,7 +580,7 @@ export default function PlatformDashboard() {
   }, {});
 
   const [creatingOwnerFor, setCreatingOwnerFor] = useState<TenantRow | null>(null);
-  const [activeTab, setActiveTab] = useState<"tenants" | "lire-help">("tenants");
+  const [activeTab, setActiveTab] = useState<"tenants" | "lire-help" | "metrics">("tenants");
 
   const planBadge = (plan: string) => {
     const colors: Record<string, string> = {
@@ -402,6 +601,7 @@ export default function PlatformDashboard() {
         <h1 className="text-lg font-bold">LIRE Help</h1>
         <span className="text-xs bg-primary/10 text-primary rounded px-2 py-0.5 font-medium">Platform Admin</span>
         <div className="flex-1" />
+        <ThemeToggle />
         <span className="text-xs text-muted-foreground mr-2">{user?.email}</span>
         <button onClick={logout} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
           <LogOut className="h-3.5 w-3.5" /> Sign out
@@ -412,6 +612,7 @@ export default function PlatformDashboard() {
         {([
           { id: "tenants" as const, label: "Tenants", icon: <Building2 className="h-3.5 w-3.5" /> },
           { id: "lire-help" as const, label: "LIRE Help", icon: <MessageSquare className="h-3.5 w-3.5" /> },
+          { id: "metrics" as const, label: "Metrics", icon: <BarChart3 className="h-3.5 w-3.5" /> },
         ]).map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
@@ -429,6 +630,8 @@ export default function PlatformDashboard() {
             <PlatformSessionsPanel />
           </div>
         )}
+
+        {activeTab === "metrics" && <MetricsTab />}
 
         {activeTab === "tenants" && <>
           <div className="grid grid-cols-3 gap-4">
