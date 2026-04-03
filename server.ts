@@ -521,6 +521,7 @@ RESTRICTIONS:
       await sql`CREATE INDEX IF NOT EXISTS IDX_session_expire ON staff_sessions (expire)`;
       results.push("staff_sessions table OK");
 
+      await sql`DROP TABLE IF EXISTS token_usage`;
       await sql`CREATE TABLE IF NOT EXISTS token_usage (
         id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
         tenant_id VARCHAR, property_id VARCHAR, session_id TEXT,
