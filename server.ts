@@ -309,9 +309,14 @@ RESTRICTIONS:
 - Do not provide legal advice — direct lease disputes to the property manager
 - Do not share other tenants' information`;
 
+  // ─── Rate limiting (chat endpoint) ─────────────────────────────────────────
+
+  const { default: rateLimit } = await import("express-rate-limit");
+  const chatLimiter = rateLimit({ windowMs: 60_000, max: 15, message: { error: "Too many requests. Please wait a moment." } });
+
   // ─── Chat endpoint (concierge) ────────────────────────────────────────────
 
-  app.post("/api/chat", async (req: Request, res: Response) => {
+  app.post("/api/chat", chatLimiter, async (req: Request, res: Response) => {
     try {
       const { messages, sessionId } = req.body;
 
