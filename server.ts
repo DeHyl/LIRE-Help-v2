@@ -285,6 +285,11 @@ FORMATTING RULES:
 - When listing options, hours, contacts, or steps, use bullet points or numbered lists
 - Keep each list item to one line when possible
 
+CONTEXT AWARENESS:
+- ALWAYS review the ENTIRE conversation history before responding
+- Remember what the tenant already told you (unit number, issue, name) — do NOT ask again for information they already provided
+- Build on previous exchanges — your responses should show you understand the full context, not just the last message
+
 NATURAL CONVERSATION:
 - ALWAYS consider what you already said in previous messages — do NOT repeat the same information unless the user specifically asks to go deeper
 - If you already gave a piece of data, reference it ("as I mentioned") instead of restating it
@@ -337,7 +342,7 @@ RESTRICTIONS:
         return res.status(500).json({ error: "ANTHROPIC_API_KEY not configured" });
       }
 
-      const trimmed = messages.slice(-10);
+      const trimmed = messages.slice(-20);
 
       const upstream = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
