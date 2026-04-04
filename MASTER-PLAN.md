@@ -271,5 +271,35 @@ LIRE is the **B2B enterprise** extension of the same AI property operations thes
 
 ---
 
-*Last updated: March 2026 · Dehyl SAS · Medellín, Colombia*
+## 10. Onboarding Strategy — Oakland Gateway as Template
+
+**Oakland Gateway Industrial Park** is the permanent demo/template property. It will NEVER be deleted.
+
+When Berkeley Partners provides their 100 real units for testing:
+
+```
+Berkeley Partners (enterprise tenant):
+├── Oakland Gateway Industrial Park (demo/template) — PERMANENT
+│   └── 11 KB entries, 5 staff, full vendor/contract/permit data
+│   └── Serves as "gold standard" for what a fully configured property looks like
+├── Berkeley Real Property 1
+├── Berkeley Real Property 2
+├── ...
+└── Berkeley Real Property 100
+```
+
+**Oakland Gateway serves three purposes:**
+1. **Demo showcase** — for sales calls, investor meetings, new client pitches
+2. **Onboarding template** — "here's what your property will look like when fully configured"
+3. **Development reference** — every new feature gets tested on Oakland first
+
+**Onboarding flow for 100 units:**
+- Wizard built AFTER Berkeley provides their actual data, fields, and workflows
+- Each property gets its own KB, agent, and concierge
+- Bulk import tools needed for 100-unit scale (CSV/API)
+- Oakland's KB structure (11 categories) becomes the template for new properties
+
+---
+
+*Last updated: April 2026 · Dehyl SAS · Medellín, Colombia*
 *Built by Alejandro Domínguez — mune100g@gmail.com*
