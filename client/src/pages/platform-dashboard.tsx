@@ -580,7 +580,7 @@ export default function PlatformDashboard() {
   }, {});
 
   const [creatingOwnerFor, setCreatingOwnerFor] = useState<TenantRow | null>(null);
-  const [activeTab, setActiveTab] = useState<"tenants" | "lire-help" | "metrics">("tenants");
+  const [activeTab, setActiveTab] = useState<"tenants" | "kb" | "conversations" | "metrics">("tenants");
 
   const planBadge = (plan: string) => {
     const colors: Record<string, string> = {
@@ -611,7 +611,8 @@ export default function PlatformDashboard() {
       <nav className="border-b bg-card px-6 flex gap-1">
         {([
           { id: "tenants" as const, label: "Tenants", icon: <Building2 className="h-3.5 w-3.5" /> },
-          { id: "lire-help" as const, label: "LIRE Help", icon: <MessageSquare className="h-3.5 w-3.5" /> },
+          { id: "kb" as const, label: "Knowledge Base", icon: <MessageSquare className="h-3.5 w-3.5" /> },
+          { id: "conversations" as const, label: "Conversations", icon: <MessageSquare className="h-3.5 w-3.5" /> },
           { id: "metrics" as const, label: "Metrics", icon: <BarChart3 className="h-3.5 w-3.5" /> },
         ]).map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
@@ -624,9 +625,14 @@ export default function PlatformDashboard() {
       </nav>
 
       <main className="p-6 max-w-5xl mx-auto space-y-8">
-        {activeTab === "lire-help" && (
+        {activeTab === "kb" && (
           <div className="space-y-6">
             <PlatformKbPanel />
+          </div>
+        )}
+
+        {activeTab === "conversations" && (
+          <div className="space-y-6">
             <PlatformSessionsPanel />
           </div>
         )}
