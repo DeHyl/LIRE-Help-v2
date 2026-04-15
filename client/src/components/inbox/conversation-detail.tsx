@@ -3,6 +3,7 @@ import type { ConversationDetail, ConversationRow } from "./types";
 interface ConversationDetailProps {
   conversation: ConversationRow | undefined;
   detail: ConversationDetail | undefined;
+  detailLoading?: boolean;
 }
 
 const statusClasses = {
@@ -32,7 +33,20 @@ const timelineClasses = {
   system: "border-violet-200 bg-violet-50",
 } as const;
 
-export function ConversationDetailPane({ conversation, detail }: ConversationDetailProps) {
+export function ConversationDetailPane({ conversation, detail, detailLoading = false }: ConversationDetailProps) {
+  if (detailLoading && conversation) {
+    return (
+      <div className="flex h-full items-center justify-center bg-slate-50 p-8 text-center">
+        <div className="max-w-sm">
+          <p className="text-sm font-semibold text-slate-900">Loading conversation</p>
+          <p className="mt-1 text-sm leading-relaxed text-slate-500">
+            Pulling message history, ticket state, and customer context from the helpdesk API.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!conversation || !detail) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50 p-8 text-center">

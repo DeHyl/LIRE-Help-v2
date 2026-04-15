@@ -32,7 +32,7 @@ export function ConversationList({ conversations, selectedConversationId, onSele
       <div className="flex h-full items-center justify-center bg-white p-6 text-center">
         <div>
           <p className="text-sm font-medium text-slate-900">No conversations in this queue</p>
-          <p className="mt-1 text-sm text-slate-500">Phase 1 ships the list scaffold, empty state, and row anatomy before real data wiring.</p>
+          <p className="mt-1 text-sm text-slate-500">This queue is currently empty for the selected inbox view.</p>
         </div>
       </div>
     );

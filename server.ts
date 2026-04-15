@@ -94,6 +94,7 @@ async function main() {
   const { default: staffRoutes } = await import("./server/staff-routes.js");
   const { default: knowledgeRoutes } = await import("./server/knowledge-routes.js");
   const { default: platformSessionsRoutes } = await import("./server/platform-sessions-routes.js");
+  const { default: helpdeskRoutes } = await import("./server/helpdesk-routes.js");
   const { logTokenUsage } = await import("./server/token-logger.js");
   const { default: metricsRoutes } = await import("./server/metrics-routes.js");
 
@@ -103,6 +104,7 @@ async function main() {
   app.use("/api/staff", staffRoutes);
   app.use("/api/knowledge", knowledgeRoutes);
   app.use("/api/platform-sessions", platformSessionsRoutes);
+  app.use("/api/helpdesk", helpdeskRoutes);
   app.use("/api/admin/metrics", metricsRoutes);
 
   // ─── /api/public/brand ────────────────────────────────────────────────────

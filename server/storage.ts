@@ -1,7 +1,23 @@
 import { db } from "./db.js";
 import { tenants, properties, agents, platformKnowledge, platformSessions } from "../shared/schema.js";
-import { eq, and, desc } from "drizzle-orm";
-import type { Tenant, InsertTenant, Property, InsertProperty, Agent, InsertAgent, PlatformKnowledgeEntry, PlatformSession } from "../shared/schema.js";
+import { DEFAULT_INBOX_VIEW_KEY, helpdeskMockData } from "../shared/helpdesk.js";
+import { eq, desc } from "drizzle-orm";
+import type {
+  Tenant,
+  InsertTenant,
+  Property,
+  InsertProperty,
+  Agent,
+  InsertAgent,
+  PlatformKnowledgeEntry,
+  PlatformSession,
+} from "../shared/schema.js";
+import type {
+  ConversationDetail,
+  ConversationRow,
+  InboxViewDefinition,
+  InboxViewKey,
+} from "../shared/helpdesk.js";
 
 // ─── Tenants ─────────────────────────────────────────────────────────────────
 
@@ -142,4 +158,70 @@ export async function getPlatformSession(id: string): Promise<PlatformSession | 
 export async function updatePlatformSessionTags(id: string, tags: string[]): Promise<PlatformSession | null> {
   const [row] = await db.update(platformSessions).set({ tags }).where(eq(platformSessions.id, id)).returning();
   return row ?? null;
+}
+
+// ─── Help Inbox Scaffolding / Adapter Fallback ──────────────────────────────
+
+function matchesInboxView(conversation: ConversationRow, viewKey: InboxViewKey): boolean {
+  switch (viewKey) {
+    case "assigned":
+      return conversation.assignmentState === "assigned";
+    case "unassigned":
+      return conversation.assignmentState === "unassigned";
+    case "awaiting_reply":
+      return conversation.status === "open" || conversation.status === "pending";
+    case "sla_at_risk":
+      return conversation.slaState === "at_risk" || conversation.slaState === "breached";
+    case "closed_recently":
+      return conversation.status === "resolved";
+    case "support":
+      return conversation.inboxLabel === "Support";
+    case "escalations":
+      return conversation.inboxLabel === "Escalations";
+    case "billing":
+      return conversation.inboxLabel === "Billing";
+    case "vip":
+      return conversation.inboxLabel === "VIP";
+    case "high_priority":
+      return conversation.priority === "high" || conversation.priority === "urgent";
+    case "bugs":
+      return conversation.tags.includes("bug");
+    case "renewals":
+      return conversation.tags.includes("renewal") || conversation.tags.includes("pricing");
+    case "all":
+    default:
+      return true;
+  }
+}
+
+function getScaffoldConversations(_tenantId?: string | null, _propertyId?: string | null): ConversationRow[] {
+  return helpdeskMockData.conversations;
+}
+
+export async function getHelpInboxNavigation(tenantId?: string | null, propertyId?: string | null): Promise<InboxViewDefinition[]> {
+  const conversations = getScaffoldConversations(tenantId, propertyId);
+  return helpdeskMockData.views.map((view) => ({
+    ...view,
+    count: conversations.filter((conversation) => matchesInboxView(conversation, view.key)).length,
+  }));
+}
+
+export async function getHelpInboxConversations(
+  viewKey: InboxViewKey = DEFAULT_INBOX_VIEW_KEY,
+  tenantId?: string | null,
+  propertyId?: string | null,
+): Promise<ConversationRow[]> {
+  const conversations = getScaffoldConversations(tenantId, propertyId);
+  return conversations.filter((conversation) => matchesInboxView(conversation, viewKey));
+}
+
+export async function getHelpConversationDetail(
+  conversationId: string,
+  tenantId?: string | null,
+  propertyId?: string | null,
+): Promise<ConversationDetail | null> {
+  const conversations = getScaffoldConversations(tenantId, propertyId);
+  const exists = conversations.some((conversation) => conversation.id === conversationId);
+  if (!exists) return null;
+  return helpdeskMockData.details[conversationId] ?? null;
 }

@@ -1,11 +1,13 @@
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { InboxShell } from "../components/inbox/inbox-shell";
-import { inboxScaffoldData } from "../components/inbox/mock-data";
+import { DEFAULT_INBOX_VIEW_KEY, inboxViewKeys } from "../components/inbox/types";
 import type { InboxViewKey } from "../components/inbox/types";
 import { WorkspaceShell } from "../components/workspace/workspace-shell";
+import { helpdeskApi } from "../lib/helpdesk";
 
-const validViewKeys = new Set<InboxViewKey>(inboxScaffoldData.views.map((view) => view.key));
+const validViewKeys = new Set<InboxViewKey>(inboxViewKeys);
 
 interface InboxPageProps {
   viewId?: string;
@@ -15,14 +17,23 @@ function coerceViewKey(viewId?: string): InboxViewKey {
   if (viewId && validViewKeys.has(viewId as InboxViewKey)) {
     return viewId as InboxViewKey;
   }
-  return "all";
+  return DEFAULT_INBOX_VIEW_KEY;
 }
 
 export default function InboxPage({ viewId }: InboxPageProps) {
   const [location, navigate] = useLocation();
-  const selectedView = coerceViewKey(viewId);
+  const routeView = coerceViewKey(viewId);
   const search = useMemo(() => new URLSearchParams(window.location.search), [location]);
   const selectedConversationId = search.get("conversation");
+
+  const navigationQuery = useQuery({
+    queryKey: ["helpdesk", "inbox", "navigation"],
+    queryFn: helpdeskApi.getNavigation,
+  });
+
+  const selectedView = navigationQuery.data?.views.some((view) => view.key === routeView)
+    ? routeView
+    : navigationQuery.data?.defaultViewKey ?? DEFAULT_INBOX_VIEW_KEY;
 
   const updateRoute = (view: InboxViewKey, conversationId?: string | null) => {
     const nextSearch = new URLSearchParams();
@@ -40,7 +51,7 @@ export default function InboxPage({ viewId }: InboxPageProps) {
       <div className="mb-4 rounded-[24px] border border-slate-200 bg-white px-5 py-4 shadow-sm xl:hidden">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Queue selection</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {inboxScaffoldData.views.map((view) => (
+          {(navigationQuery.data?.views ?? []).map((view) => (
             <button
               key={view.key}
               type="button"
@@ -49,6 +60,7 @@ export default function InboxPage({ viewId }: InboxPageProps) {
                 "rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
                 view.key === selectedView ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200",
               ].join(" ")}
+              disabled={navigationQuery.isLoading}
             >
               {view.label}
             </button>
@@ -57,6 +69,9 @@ export default function InboxPage({ viewId }: InboxPageProps) {
       </div>
 
       <InboxShell
+        views={navigationQuery.data?.views ?? []}
+        navigationLoading={navigationQuery.isLoading}
+        navigationError={navigationQuery.error instanceof Error ? navigationQuery.error.message : null}
         selectedView={selectedView}
         selectedConversationId={selectedConversationId}
         onSelectView={(view) => updateRoute(view, selectedConversationId)}

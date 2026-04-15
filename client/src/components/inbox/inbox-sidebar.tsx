@@ -25,7 +25,7 @@ export function InboxSidebar({ views, selectedView, onSelectView }: InboxSidebar
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Inbox IA</p>
         <h2 className="mt-1 text-sm font-semibold text-slate-900">Queues and saved views</h2>
         <p className="mt-1 text-xs leading-relaxed text-slate-500">
-          This is route-driven scaffolding for view selection. Counts and grouping are mocked for phase 1.
+          Route-driven inbox navigation backed by the helpdesk API. Counts reflect the current queue snapshot.
         </p>
       </div>
 
