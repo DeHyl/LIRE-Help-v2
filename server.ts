@@ -592,16 +592,35 @@ RESTRICTIONS:
     app.use(express.static(path.join(root, "public")));
   } else {
     const adminDir = path.join(root, "dist", "admin");
+    const marketingDir = path.join(root, "public");
+    const spaRoutePrefixes = [
+      "/login",
+      "/dashboard",
+      "/inbox",
+      "/tickets",
+      "/customers",
+      "/settings",
+      "/platform-dashboard",
+    ] as const;
+
+    const isSpaRoute = (pathname: string) => (
+      spaRoutePrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+    );
+
     app.use("/app", express.static(adminDir));
+    app.use(express.static(marketingDir));
 
-    const spaFallback = (_req: Request, res: Response) => {
-      res.sendFile(path.join(adminDir, "index.html"));
-    };
-    app.get("/login", spaFallback);
-    app.get("/dashboard", spaFallback);
-    app.get("/dashboard/*", spaFallback);
+    app.get("*", (req: Request, res: Response, next) => {
+      if (req.path.startsWith("/api/") || req.path.startsWith("/app/") || path.extname(req.path)) {
+        return next();
+      }
 
-    app.use(express.static(path.join(root, "public")));
+      if (!isSpaRoute(req.path)) {
+        return next();
+      }
+
+      return res.sendFile(path.join(adminDir, "index.html"));
+    });
   }
 
   // ─── Start ────────────────────────────────────────────────────────────────
