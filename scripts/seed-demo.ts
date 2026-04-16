@@ -1,8 +1,9 @@
 // Demo data seed script for Northstar Industrial Group
 // Run: npm run db:seed
 //
-// This script is idempotent — safe to re-run. It uses ON CONFLICT DO UPDATE
-// or checks for existing records before inserting.
+// This script is fully idempotent — re-running it will first delete all
+// existing demo helpdesk data for the Northstar tenant, then re-create it
+// from scratch. Tenant/property/staff upserts are non-destructive (ON CONFLICT DO UPDATE).
 
 import postgres from "postgres";
 import bcrypt from "bcrypt";
@@ -180,18 +181,15 @@ async function upsertInboxes(tenantId: string, propertyIds: string[]) {
 
   const ids: string[] = [];
   for (const def of defs) {
-    const [row] = await sql`
-      INSERT INTO help_inboxes (tenant_id, property_id, slug, name, description, channel, is_default, is_active)
-      VALUES (${tenantId}, ${def.propertyId}, ${def.slug}, ${def.name}, ${def.description}, 'email', ${def.isDefault}, true)
-      ON CONFLICT DO NOTHING
-      RETURNING id, name
-    `;
-    if (row) {
-      ids.push(row.id as string);
-    } else {
-      const [existing] = await sql`SELECT id FROM help_inboxes WHERE tenant_id = ${tenantId} AND slug = ${def.slug} LIMIT 1`;
-      if (existing) ids.push(existing.id as string);
+    let [existing] = await sql`SELECT id FROM help_inboxes WHERE tenant_id = ${tenantId} AND slug = ${def.slug} LIMIT 1`;
+    if (!existing) {
+      [existing] = await sql`
+        INSERT INTO help_inboxes (tenant_id, property_id, slug, name, description, channel, is_default, is_active)
+        VALUES (${tenantId}, ${def.propertyId}, ${def.slug}, ${def.name}, ${def.description}, 'email', ${def.isDefault}, true)
+        RETURNING id, name
+      `;
     }
+    if (existing) ids.push(existing.id as string);
   }
   return ids;
 }
@@ -1086,6 +1084,16 @@ Rent payment: Due 1st of month. 5-day grace period. Late fee: 5% of monthly rent
   }
 }
 
+async function clearHelpdeskData(tenantId: string): Promise<void> {
+  console.log("Clearing existing helpdesk data for tenant…");
+  await sql`DELETE FROM help_conversation_tags WHERE tenant_id = ${tenantId}`;
+  await sql`DELETE FROM help_messages WHERE tenant_id = ${tenantId}`;
+  await sql`DELETE FROM help_tickets WHERE tenant_id = ${tenantId}`;
+  await sql`DELETE FROM help_conversations WHERE tenant_id = ${tenantId}`;
+  await sql`DELETE FROM help_customers WHERE tenant_id = ${tenantId}`;
+  console.log("Helpdesk data cleared.");
+}
+
 async function main() {
   console.log("=== Northstar Industrial Group — Demo Seed ===\n");
 
@@ -1093,6 +1101,9 @@ async function main() {
   const propertyIds = await upsertProperties(tenantId);
   const staffIds = await upsertDemoStaff(tenantId, propertyIds);
   const inboxIds = await upsertInboxes(tenantId, propertyIds);
+
+  await clearHelpdeskData(tenantId);
+
   const tagMap = await upsertTags(tenantId);
   const customerIds = await upsertCustomers(tenantId, propertyIds);
 
