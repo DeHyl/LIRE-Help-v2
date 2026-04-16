@@ -5,9 +5,11 @@ import express, { type Request, type Response } from "express";
 import helmet from "helmet";
 import path from "path";
 
-// In CJS (esbuild output): __dirname = dist/, so resolve project root one level up
+// In CJS (esbuild output): __dirname = dist/, so resolve project root one level up.
+// In dev (ESM via tsx): import.meta.url points to server.ts in the project root, so root = that dir.
 const bundleDir = typeof __dirname !== "undefined" ? __dirname : path.dirname(new URL(import.meta.url).pathname);
-const root = path.resolve(bundleDir, "..");
+const isCjsBundle = typeof __dirname !== "undefined";
+const root = isCjsBundle ? path.resolve(bundleDir, "..") : bundleDir;
 
 async function main() {
   const app = express();
@@ -411,9 +413,9 @@ RESTRICTIONS:
   // ─── Static file serving ──────────────────────────────────────────────────
 
   if (isDev) {
+    app.use(express.static(path.join(root, "public")));
     const { setupVite } = await import("./server/vite.js");
     await setupVite(app);
-    app.use(express.static(path.join(root, "public")));
   } else {
     const adminDir = path.join(root, "dist", "admin");
     const marketingDir = path.join(root, "public");
