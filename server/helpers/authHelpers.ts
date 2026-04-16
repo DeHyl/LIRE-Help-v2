@@ -16,6 +16,7 @@ export function setStaffSession(req: Request, user: StaffUser): void {
   (req.session as any).staffId = user.id;
   (req.session as any).staffRole = user.role;
   (req.session as any).staffTenantId = user.tenantId ?? null;
+  (req.session as any).staffPropertyId = user.propertyId ?? null;
 }
 
 export function safeUser(user: StaffUser): Omit<StaffUser, "passwordHash"> {
