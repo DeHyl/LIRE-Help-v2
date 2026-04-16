@@ -209,10 +209,10 @@ async function main() {
 
 REAL-WORLD CONTEXT:
 Today's date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-Platform: LIRE-Help — AI-powered Industrial Property Management
-Target market: Industrial/commercial real estate (warehouses, logistics, manufacturing facilities)
-Region: North America (US and Canada)
-Timezone: America/New_York
+Platform: ${process.env.PLATFORM_NAME || "LIRE-Help — AI-powered Industrial Property Management"}
+Target market: ${process.env.PLATFORM_MARKET || "Industrial/commercial real estate (warehouses, logistics, manufacturing facilities)"}
+Region: ${process.env.PLATFORM_REGION || "North America (US and Canada)"}
+Timezone: ${process.env.PLATFORM_TIMEZONE || "America/New_York"}
 
 CRITICAL: Only reference real property management concepts and industry practices. Never invent tenant names, lease details, or property data not in the system.
 
