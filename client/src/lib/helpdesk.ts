@@ -32,4 +32,13 @@ export const helpdeskApi = {
   addInternalNote: (conversationId: string, body: string) =>
     api.post<ConversationDetail>(`/api/helpdesk/inbox/conversations/${conversationId}/notes`, { body }),
   getDashboardMetrics: () => api.get<HelpdeskDashboardMetrics>("/api/helpdesk/dashboard/metrics"),
+  getPropertiesSummary: () => api.get<{ properties: PropertySummaryItem[] }>("/api/helpdesk/properties-summary"),
 };
+
+export interface PropertySummaryItem {
+  id: string;
+  name: string;
+  location: string | null;
+  unitCount: number;
+  openTicketCount: number;
+}

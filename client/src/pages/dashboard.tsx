@@ -1,4 +1,4 @@
-import { AlertTriangle, Inbox, Loader2, TimerReset, UserRoundMinus } from "lucide-react";
+import { AlertTriangle, Building2, Inbox, Loader2, MapPin, TimerReset, UserRoundMinus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { WorkspaceShell } from "../components/workspace/workspace-shell";
@@ -18,6 +18,12 @@ export default function DashboardPage() {
     refetchInterval: 60_000,
   });
 
+  const propertiesQuery = useQuery({
+    queryKey: ["helpdesk", "properties-summary"],
+    queryFn: helpdeskApi.getPropertiesSummary,
+    refetchInterval: 60_000,
+  });
+
   return (
     <WorkspaceShell
       title="Dashboard"
@@ -33,6 +39,51 @@ export default function DashboardPage() {
         </div>
       ) : metricsQuery.data ? (
         <div className="space-y-6">
+          {propertiesQuery.data && propertiesQuery.data.properties.length > 0 ? (
+            <section>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Portfolio</p>
+                  <h2 className="mt-1 text-sm font-semibold text-slate-950">Properties at a glance</h2>
+                </div>
+                <Link href="/contacts"><a className="text-sm font-medium text-blue-600">View all</a></Link>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {propertiesQuery.data.properties.map((property) => (
+                  <div key={property.id} className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
+                        <Building2 className="h-5 w-5" />
+                      </div>
+                      {property.openTicketCount > 0 ? (
+                        <span className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700">
+                          {property.openTicketCount} open
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                          All clear
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-3">
+                      <p className="text-sm font-semibold text-slate-900">{property.name}</p>
+                      {property.location ? (
+                        <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                          <MapPin className="h-3 w-3" />
+                          {property.location}
+                        </p>
+                      ) : null}
+                      <p className="mt-2 text-xs text-slate-500">
+                        {property.unitCount > 1 ? `${property.unitCount} units` : "Single-tenant"} ·{" "}
+                        {property.openTicketCount === 0 ? "No open tickets" : `${property.openTicketCount} open ticket${property.openTicketCount === 1 ? "" : "s"}`}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {summaryMeta.map((card) => {
               const Icon = card.icon;

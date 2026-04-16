@@ -7,6 +7,7 @@ import {
   getHelpInboxConversations,
   getHelpInboxNavigation,
   getHelpdeskDashboardMetrics,
+  getPropertiesSummary,
   updateHelpConversationAssignee,
   updateHelpConversationPriority,
   updateHelpConversationStatus,
@@ -147,6 +148,17 @@ router.get("/dashboard/metrics", async (req, res) => {
   } catch (err) {
     console.error("[helpdesk dashboard metrics]", err);
     return res.status(500).json({ message: "Error fetching dashboard metrics" });
+  }
+});
+
+router.get("/properties-summary", async (req, res) => {
+  try {
+    const sess = req.session as any;
+    const summary = await getPropertiesSummary(sess?.staffTenantId ?? null);
+    return res.json({ properties: summary });
+  } catch (err) {
+    console.error("[helpdesk properties summary]", err);
+    return res.status(500).json({ message: "Error fetching properties summary" });
   }
 });
 

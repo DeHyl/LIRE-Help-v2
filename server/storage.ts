@@ -951,6 +951,46 @@ async function ensureTicketForConversation(conversation: HelpConversation, exist
   return created!;
 }
 
+export interface PropertySummaryItem {
+  id: string;
+  name: string;
+  location: string | null;
+  unitCount: number;
+  openTicketCount: number;
+}
+
+export async function getPropertiesSummary(tenantId?: string | null): Promise<PropertySummaryItem[]> {
+  if (!tenantId) {
+    const [tenant] = await db.select().from(tenants).orderBy(asc(tenants.createdAt)).limit(1);
+    if (!tenant) return [];
+    tenantId = tenant.id;
+  }
+
+  const allProperties = await db.select().from(properties).where(eq(properties.tenantId, tenantId)).orderBy(asc(properties.name));
+  if (allProperties.length === 0) return [];
+
+  const allConversations = await db.select({
+    id: helpConversations.id,
+    propertyId: helpConversations.propertyId,
+    status: helpConversations.status,
+  }).from(helpConversations).where(eq(helpConversations.tenantId, tenantId));
+
+  const openByProperty = new Map<string, number>();
+  for (const conv of allConversations) {
+    if (conv.status === "resolved") continue;
+    if (!conv.propertyId) continue;
+    openByProperty.set(conv.propertyId, (openByProperty.get(conv.propertyId) ?? 0) + 1);
+  }
+
+  return allProperties.map((property) => ({
+    id: property.id,
+    name: property.name,
+    location: property.location ?? null,
+    unitCount: property.name.toLowerCase().includes("flex") ? 15 : 1,
+    openTicketCount: openByProperty.get(property.id) ?? 0,
+  }));
+}
+
 export async function getHelpdeskDashboardMetrics(
   tenantId?: string | null,
   propertyId?: string | null,

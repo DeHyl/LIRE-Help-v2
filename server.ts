@@ -22,6 +22,12 @@ async function main() {
     throw new Error("SESSION_SECRET is required in production");
   }
 
+  if (!ANTHROPIC_API_KEY) {
+    console.warn("[startup] ANTHROPIC_API_KEY is not set — AI concierge (/api/chat) will return a graceful 'not configured' response.");
+  } else {
+    console.log("[startup] ANTHROPIC_API_KEY configured — AI concierge is active.");
+  }
+
   // Trust Railway's reverse proxy (needed for secure cookies)
   app.set("trust proxy", 1);
 
@@ -338,7 +344,10 @@ RESTRICTIONS:
       }
 
       if (!ANTHROPIC_API_KEY) {
-        return res.status(500).json({ error: "ANTHROPIC_API_KEY not configured" });
+        return res.status(200).json({
+          response: "The AI concierge is not configured yet. Please ask your property manager for assistance or contact the leasing office directly.",
+          escalate: false,
+        });
       }
 
       const trimmed = messages.slice(-20);

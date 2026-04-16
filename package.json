@@ -10,6 +10,7 @@
     "build:server": "esbuild server.ts --bundle --platform=node --target=node20 --outfile=dist/index.cjs --format=cjs --external:vite --external:@vitejs/plugin-react --external:esbuild --external:dotenv --external:bcrypt --external:pg",
     "start": "node dist/index.cjs",
     "db:push": "drizzle-kit push",
+    "db:seed": "tsx scripts/seed-demo.ts",
     "check": "tsc --noEmit"
   },
   "dependencies": {

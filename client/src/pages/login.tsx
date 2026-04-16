@@ -202,8 +202,13 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-6 text-slate-500">
-                Sessions are still handled by the existing auth layer. This redesign changes the visible product feel, not the underlying login flow.
+              <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+                <p className="text-xs font-semibold text-blue-800">Demo credentials</p>
+                <p className="mt-1 text-xs leading-5 text-blue-700">
+                  Email: <span className="font-mono font-semibold">demo@northstar.com</span>
+                  <br />
+                  Password: <span className="font-mono font-semibold">Demo2026</span>
+                </p>
               </div>
             </div>
           </div>
