@@ -15,7 +15,7 @@ const summaryMeta = [
 function DashboardSkeleton() {
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="rounded-card border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-start justify-between gap-3">
@@ -29,11 +29,11 @@ function DashboardSkeleton() {
         ))}
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+      <section className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         {Array.from({ length: 2 }).map((_, i) => (
           <div key={i} className="rounded-card border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900 space-y-3">
             <Skeleton className="h-3 w-32" />
@@ -89,7 +89,7 @@ export default function DashboardPage() {
                 </div>
                 <Link href="/customers"><a className="text-sm font-medium text-blue-600 dark:text-blue-400">View all</a></Link>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {propertiesQuery.data.properties.map((property) => (
                   <Link key={property.id} href={`/inbox/all?propertyId=${property.id}`}>
                     <a className="block rounded-card border border-slate-200 bg-white p-5 shadow-card transition hover:border-slate-300 hover:bg-slate-50 hover:shadow-raised dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 dark:hover:bg-slate-800/60">
@@ -123,7 +123,7 @@ export default function DashboardPage() {
             </section>
           ) : null}
 
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {summaryMeta.map((card) => {
               const Icon = card.icon;
               const value = metricsQuery.data.summary[card.key];
@@ -147,7 +147,7 @@ export default function DashboardPage() {
             })}
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+          <section className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
             <article className="rounded-card border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -195,7 +195,7 @@ export default function DashboardPage() {
             </article>
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <section className="grid gap-6 lg:grid-cols-2">
             <article className="rounded-card border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
               <p className="eyebrow">Recent activity</p>
               <div className="mt-4 space-y-3">

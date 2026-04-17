@@ -107,7 +107,7 @@ export function InboxShell({
     ?? (detailQuery.error instanceof Error ? detailQuery.error.message : null);
 
   return (
-    <div className="flex h-[calc(100vh-11.5rem)] min-h-[720px] min-w-0 overflow-hidden rounded-[32px] border border-slate-200/90 bg-white/90 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-sm dark:border-slate-800/80 dark:bg-slate-900/70 dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+    <div className="flex h-[min(calc(100vh-11.5rem),900px)] min-h-[560px] min-w-0 overflow-hidden rounded-[32px] border border-slate-200/90 bg-white/90 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-sm dark:border-slate-800/80 dark:bg-slate-900/70 dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
       <div className="hidden xl:block">
         <InboxSidebar views={views} selectedView={fallbackView?.key ?? selectedView} onSelectView={onSelectView} />
       </div>

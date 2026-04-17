@@ -127,7 +127,7 @@ export function WorkspaceShell({ title, children, eyebrow = "Support workspace",
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 border-b border-slate-200/90 bg-white/85 px-4 py-4 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 sm:px-6 lg:px-8 dark:border-slate-800/80 dark:bg-slate-950/70 dark:supports-[backdrop-filter]:bg-slate-950/60">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="flex items-start gap-3">
               <button
                 type="button"
@@ -194,7 +194,9 @@ export function WorkspaceShell({ title, children, eyebrow = "Support workspace",
           </div>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-auto p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="min-h-0 flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto w-full max-w-[1440px]">{children}</div>
+        </main>
       </div>
     </div>
   );
