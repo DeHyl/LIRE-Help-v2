@@ -1,10 +1,12 @@
 import { Router, type Request, type Response } from "express";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../db.js";
-import { deals, dealEvents, tours, units, unitSheets } from "../../../shared/schema.js";
+import { deals, dealEvents, properties, tours, units, unitSheets } from "../../../shared/schema.js";
 import { insertDealSchema, insertDealEventSchema, insertTourSchema } from "../../../shared/schema.js";
 import { requireStaff } from "../../middleware/auth.js";
 import { loadTenantYaml } from "../tenant-config.js";
+import { draftTourRecap } from "./claude-recap.js";
+import { syncPropertyUnits } from "./yardi-sync.js";
 
 type LeasingConfig = {
   pipeline: {
@@ -101,6 +103,74 @@ router.post("/tours", async (req: Request, res: Response) => {
   if (!parsed.success) return res.status(400).json({ message: "Invalid tour payload", issues: parsed.error.issues });
   const [row] = await db.insert(tours).values(parsed.data).returning();
   return res.status(201).json({ tour: row });
+});
+
+router.post("/tours/:tourId/recap", async (req: Request, res: Response) => {
+  const { tenantId } = getTenantContext(req);
+  if (!tenantId) return res.status(400).json({ message: "Missing tenant context" });
+  const tourId = req.params["tourId"] as string;
+
+  const [tour] = await db
+    .select()
+    .from(tours)
+    .where(and(eq(tours.id, tourId), eq(tours.tenantId, tenantId)))
+    .limit(1);
+  if (!tour) return res.status(404).json({ message: "Tour not found" });
+  if (!tour.brokerNotesRaw) return res.status(400).json({ message: "Tour has no broker notes yet" });
+
+  const [deal] = await db.select().from(deals).where(eq(deals.id, tour.dealId)).limit(1);
+  const [unit] = tour.unitId
+    ? await db.select().from(units).where(eq(units.id, tour.unitId)).limit(1)
+    : [null];
+
+  try {
+    const result = await draftTourRecap({
+      tenantId,
+      prospectCompany: deal?.prospectCompany ?? "Unknown prospect",
+      unitLabel: unit?.label ?? null,
+      brokerNotes: tour.brokerNotesRaw,
+    });
+    const [updated] = await db
+      .update(tours)
+      .set({ aiRecap: result.recap, aiRecapModel: result.model, updatedAt: new Date() })
+      .where(eq(tours.id, tourId))
+      .returning();
+    return res.json({ tour: updated });
+  } catch (err) {
+    console.error("[leasing tour recap]", err);
+    return res.status(502).json({ message: "Recap draft failed" });
+  }
+});
+
+router.post("/properties/:propertyId/sync", async (req: Request, res: Response) => {
+  const { tenantId, tenantSlug } = getTenantContext(req);
+  if (!tenantId || !tenantSlug) return res.status(400).json({ message: "Missing tenant context" });
+  const propertyId = req.params["propertyId"] as string;
+
+  const [property] = await db
+    .select()
+    .from(properties)
+    .where(and(eq(properties.id, propertyId), eq(properties.tenantId, tenantId)))
+    .limit(1);
+  if (!property) return res.status(404).json({ message: "Property not found" });
+
+  const externalId =
+    typeof req.body?.propertyExternalId === "string" && req.body.propertyExternalId.trim().length > 0
+      ? req.body.propertyExternalId
+      : property.slug;
+
+  try {
+    const result = await syncPropertyUnits({
+      tenantId,
+      tenantSlug,
+      propertyId,
+      propertyExternalId: externalId,
+    });
+    return res.json({ result });
+  } catch (err) {
+    console.error("[leasing yardi sync]", err);
+    return res.status(502).json({ message: "Yardi sync failed" });
+  }
 });
 
 router.get("/unit-sheets/:shareToken", async (req: Request, res: Response) => {
