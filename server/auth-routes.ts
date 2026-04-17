@@ -28,7 +28,7 @@ router.post("/login", async (req, res) => {
       .set({ lastLoginAt: new Date(), updatedAt: new Date() })
       .where(eq(staffUsers.id, user.id));
 
-    setStaffSession(req, user);
+    await setStaffSession(req, user);
     req.session.save((err) => {
       if (err) {
         console.error("[auth] session save error:", err);
