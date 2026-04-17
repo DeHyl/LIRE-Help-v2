@@ -1,4 +1,6 @@
+import { Inbox } from "lucide-react";
 import type { ConversationRow } from "./types";
+import { Badge, EmptyState, PriorityBadge, SlaBadge, StatusBadge } from "../ui";
 
 interface ConversationListProps {
   title: string;
@@ -7,34 +9,15 @@ interface ConversationListProps {
   onSelectConversation: (conversationId: string) => void;
 }
 
-const priorityClasses = {
-  low: "bg-slate-100 text-slate-600",
-  medium: "bg-amber-50 text-amber-700",
-  high: "bg-orange-50 text-orange-700",
-  urgent: "bg-red-50 text-red-700",
-} as const;
-
-const statusClasses = {
-  open: "bg-emerald-50 text-emerald-700",
-  pending: "bg-blue-50 text-blue-700",
-  waiting_on_customer: "bg-violet-50 text-violet-700",
-  resolved: "bg-slate-100 text-slate-600",
-} as const;
-
-const slaClasses = {
-  healthy: "bg-emerald-50 text-emerald-700",
-  at_risk: "bg-amber-50 text-amber-700",
-  breached: "bg-red-50 text-red-700",
-} as const;
-
 export function ConversationList({ title, conversations, selectedConversationId, onSelectConversation }: ConversationListProps) {
   if (conversations.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center border-r border-slate-200 bg-white p-6 text-center">
-        <div className="max-w-sm">
-          <p className="text-sm font-medium text-slate-900">Queue is clear</p>
-          <p className="mt-1 text-sm text-slate-500">Nothing here right now.</p>
-        </div>
+      <div className="h-full border-r border-slate-200 bg-white">
+        <EmptyState
+          icon={Inbox}
+          title="Queue is clear"
+          description="Nothing needs attention here right now. Switch views or check back later."
+        />
       </div>
     );
   }
@@ -43,10 +26,8 @@ export function ConversationList({ title, conversations, selectedConversationId,
     <section className="flex h-full min-h-0 flex-col border-r border-slate-200 bg-white">
       <div className="border-b border-slate-200 px-5 py-4">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{title}</p>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
-            {conversations.length} in view
-          </span>
+          <p className="eyebrow">{title}</p>
+          <Badge tone="slate" size="md">{conversations.length} in view</Badge>
         </div>
       </div>
 
@@ -72,7 +53,7 @@ export function ConversationList({ title, conversations, selectedConversationId,
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="truncate text-sm font-semibold text-slate-900">{conversation.requesterName}</span>
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-500">{conversation.company}</span>
+                  <Badge tone="slate">{conversation.company}</Badge>
                   {conversation.unread ? <span className="h-2.5 w-2.5 rounded-full bg-slate-900" aria-label="Unread conversation" /> : null}
                 </div>
                 <p className="mt-1 text-sm font-medium text-slate-800">{conversation.subject}</p>
@@ -90,15 +71,9 @@ export function ConversationList({ title, conversations, selectedConversationId,
 
               <div className="flex flex-col items-end gap-2 text-right">
                 <span className="text-xs font-medium text-slate-500">{conversation.lastActivityLabel}</span>
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${priorityClasses[conversation.priority]}`}>
-                  {conversation.priority}
-                </span>
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClasses[conversation.status]}`}>
-                  {conversation.status.replaceAll("_", " ")}
-                </span>
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${slaClasses[conversation.slaState]}`}>
-                  SLA {conversation.slaState.replaceAll("_", " ")}
-                </span>
+                <PriorityBadge priority={conversation.priority} />
+                <StatusBadge status={conversation.status} />
+                <SlaBadge sla={conversation.slaState} />
                 <span className="max-w-[180px] text-xs text-slate-500">
                   {conversation.assignee ? `Owner: ${conversation.assignee}` : "Unassigned"}
                 </span>

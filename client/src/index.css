@@ -24,6 +24,11 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 217 91% 60%;
     --radius: 0.5rem;
+
+    --surface: 210 40% 98%;
+    --surface-muted: 210 33% 96%;
+    --surface-raised: 0 0% 100%;
+    --surface-sunken: 210 33% 94%;
   }
 }
 
@@ -50,5 +55,34 @@
 
   ::selection {
     background: rgba(15, 23, 42, 0.12);
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.08), 0 0 0 4px rgba(59, 130, 246, 0.35);
+    border-radius: inherit;
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400;
+  }
+  .section-title {
+    @apply text-sm font-semibold text-slate-950;
+  }
+}
+
+@layer utilities {
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(90deg, rgba(226, 232, 240, 0.6) 0%, rgba(226, 232, 240, 0.95) 50%, rgba(226, 232, 240, 0.6) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
   }
 }

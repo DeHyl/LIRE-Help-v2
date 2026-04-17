@@ -1,8 +1,9 @@
-import { AlertTriangle, Building2, Inbox, Loader2, MapPin, TimerReset, UserRoundMinus } from "lucide-react";
+import { AlertTriangle, Building2, Inbox, MapPin, TimerReset, UserRoundMinus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { WorkspaceShell } from "../components/workspace/workspace-shell";
 import { helpdeskApi } from "../lib/helpdesk";
+import { Badge, Card, ErrorState, Skeleton, SkeletonCard } from "../components/ui";
 
 const summaryMeta = [
   { key: "openConversations", label: "Open conversations", icon: Inbox, href: "/inbox/all" },
@@ -10,6 +11,44 @@ const summaryMeta = [
   { key: "slaAtRisk", label: "SLA at risk", icon: AlertTriangle, href: "/inbox/sla_at_risk" },
   { key: "waitingOnCustomer", label: "Waiting on customer", icon: TimerReset, href: "/inbox/all" },
 ] as const;
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-card border border-slate-200 bg-white p-5 shadow-card">
+            <div className="flex items-start justify-between gap-3">
+              <Skeleton className="h-11 w-11 rounded-2xl" />
+              <Skeleton className="h-6 w-20 rounded-full" />
+            </div>
+            <Skeleton className="mt-4 h-4 w-40" />
+            <Skeleton className="mt-2 h-3 w-24" />
+            <Skeleton className="mt-2 h-3 w-32" />
+          </div>
+        ))}
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="rounded-card border border-slate-200 bg-white p-6 shadow-card space-y-3">
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="h-5 w-56" />
+            <div className="space-y-3 pt-2">
+              {Array.from({ length: 4 }).map((__, j) => (
+                <Skeleton key={j} className="h-14 w-full rounded-2xl" />
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const metricsQuery = useQuery({
@@ -30,40 +69,38 @@ export default function DashboardPage() {
       eyebrow="Support workspace / Dashboard"
     >
       {metricsQuery.isLoading ? (
-        <div className="flex min-h-[360px] items-center justify-center rounded-[24px] border border-slate-200 bg-white text-sm text-slate-500 shadow-sm">
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading operator metrics…
-        </div>
+        <DashboardSkeleton />
       ) : metricsQuery.error instanceof Error ? (
-        <div className="rounded-[24px] border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 shadow-sm">
-          Unable to load dashboard metrics: {metricsQuery.error.message}
-        </div>
+        <Card variant="solid" className="border-red-200 bg-red-50 p-0">
+          <ErrorState
+            title="Unable to load dashboard metrics"
+            description={metricsQuery.error.message}
+            onRetry={() => void metricsQuery.refetch()}
+          />
+        </Card>
       ) : metricsQuery.data ? (
         <div className="space-y-6">
           {propertiesQuery.data && propertiesQuery.data.properties.length > 0 ? (
             <section>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Portfolio</p>
-                  <h2 className="mt-1 text-sm font-semibold text-slate-950">Properties at a glance</h2>
+                  <p className="eyebrow">Portfolio</p>
+                  <h2 className="section-title mt-1">Properties at a glance</h2>
                 </div>
                 <Link href="/customers"><a className="text-sm font-medium text-blue-600">View all</a></Link>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {propertiesQuery.data.properties.map((property) => (
                   <Link key={property.id} href={`/inbox/all?propertyId=${property.id}`}>
-                    <a className="block rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">
+                    <a className="block rounded-card border border-slate-200 bg-white p-5 shadow-card transition hover:border-slate-300 hover:bg-slate-50 hover:shadow-raised">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
                           <Building2 className="h-5 w-5" />
                         </div>
                         {property.openTicketCount > 0 ? (
-                          <span className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700">
-                            {property.openTicketCount} open
-                          </span>
+                          <Badge tone="orange" size="md">{property.openTicketCount} open</Badge>
                         ) : (
-                          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                            All clear
-                          </span>
+                          <Badge tone="success" size="md">All clear</Badge>
                         )}
                       </div>
                       <div className="mt-3">
@@ -93,7 +130,7 @@ export default function DashboardPage() {
 
               return (
                 <Link key={card.key} href={card.href}>
-                  <a className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">
+                  <a className="rounded-card border border-slate-200 bg-white p-5 shadow-card transition hover:border-slate-300 hover:bg-slate-50 hover:shadow-raised">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium text-slate-500">{card.label}</p>
@@ -111,10 +148,10 @@ export default function DashboardPage() {
           </section>
 
           <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-            <article className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
+            <article className="rounded-card border border-slate-200 bg-white p-6 shadow-card">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Status mix</p>
+                  <p className="eyebrow">Status mix</p>
                   <h2 className="mt-1 text-lg font-semibold text-slate-950">Current ticket distribution</h2>
                 </div>
                 <Link href="/inbox/all"><a className="text-sm font-medium text-blue-600">Open inbox</a></Link>
@@ -139,8 +176,8 @@ export default function DashboardPage() {
               </div>
             </article>
 
-            <article className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">By inbox / team</p>
+            <article className="rounded-card border border-slate-200 bg-white p-6 shadow-card">
+              <p className="eyebrow">By inbox / team</p>
               <div className="mt-4 space-y-3">
                 {metricsQuery.data.byInbox.map((inbox) => (
                   <div key={inbox.inboxLabel} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
@@ -148,9 +185,9 @@ export default function DashboardPage() {
                       <p className="text-sm font-semibold text-slate-900">{inbox.inboxLabel}</p>
                       <p className="text-sm font-semibold text-slate-700">{inbox.count}</p>
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-                      <span className="rounded-full bg-white px-2 py-1 ring-1 ring-slate-200">{inbox.unassignedCount} unassigned</span>
-                      <span className="rounded-full bg-white px-2 py-1 ring-1 ring-slate-200">{inbox.atRiskCount} at risk</span>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Badge tone="slate">{inbox.unassignedCount} unassigned</Badge>
+                      <Badge tone="slate">{inbox.atRiskCount} at risk</Badge>
                     </div>
                   </div>
                 ))}
@@ -159,8 +196,8 @@ export default function DashboardPage() {
           </section>
 
           <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <article className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Recent activity</p>
+            <article className="rounded-card border border-slate-200 bg-white p-6 shadow-card">
+              <p className="eyebrow">Recent activity</p>
               <div className="mt-4 space-y-3">
                 {metricsQuery.data.recentActivity.length > 0 ? metricsQuery.data.recentActivity.map((item) => (
                   <Link key={item.id} href={`/inbox/all?conversation=${item.conversationId}`}>
@@ -176,9 +213,9 @@ export default function DashboardPage() {
               </div>
             </article>
 
-            <article className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
+            <article className="rounded-card border border-slate-200 bg-white p-6 shadow-card">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Open tickets</p>
+                <p className="eyebrow">Open tickets</p>
                 <Link href="/inbox/all"><a className="text-sm font-medium text-blue-600">See all</a></Link>
               </div>
               <div className="mt-4 space-y-3">
@@ -190,9 +227,7 @@ export default function DashboardPage() {
                           <p className="text-sm font-semibold text-slate-900">{ticket.subject}</p>
                           <p className="mt-1 text-sm text-slate-500">{ticket.requesterName} · {ticket.company}</p>
                         </div>
-                        <span className="rounded-full bg-white px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-200">
-                          {ticket.priority}
-                        </span>
+                        <Badge tone="slate">{ticket.priority}</Badge>
                       </div>
                     </a>
                   </Link>

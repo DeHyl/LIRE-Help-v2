@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { useAuth } from "../lib/auth";
+import { Button, FieldLabel, Input } from "../components/ui";
 
 interface PropertyBrand {
   name: string;
@@ -150,29 +151,28 @@ export default function LoginPage() {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Work email</label>
-                  <input
+                  <FieldLabel>Work email</FieldLabel>
+                  <Input
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     required
                     autoComplete="email"
                     placeholder="name@company.com"
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-300 focus:bg-white focus:ring-4 focus:ring-slate-200/60"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>
+                  <FieldLabel>Password</FieldLabel>
                   <div className="relative">
-                    <input
+                    <Input
                       type={showPwd ? "text" : "password"}
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       required
                       autoComplete="current-password"
                       placeholder="Enter your password"
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition focus:border-slate-300 focus:bg-white focus:ring-4 focus:ring-slate-200/60"
+                      className="pr-12"
                     />
                     <button
                       type="button"
@@ -187,19 +187,19 @@ export default function LoginPage() {
                 </div>
 
                 {error ? (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
                     {error}
                   </div>
                 ) : null}
 
-                <button
+                <Button
                   type="submit"
-                  disabled={loading}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  size="lg"
+                  className="w-full"
+                  loading={loading}
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   {loading ? "Signing in…" : "Enter workspace"}
-                </button>
+                </Button>
               </form>
 
               <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">

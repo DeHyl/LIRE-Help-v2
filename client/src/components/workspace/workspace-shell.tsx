@@ -30,7 +30,7 @@ export function WorkspaceShell({ title, children, eyebrow = "Support workspace",
               </button>
 
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{eyebrow}</p>
+                <p className="eyebrow">{eyebrow}</p>
                 <h1 className="mt-2 text-[clamp(1.8rem,3vw,2.4rem)] font-semibold tracking-[-0.045em] text-slate-950">{title}</h1>
               </div>
             </div>
