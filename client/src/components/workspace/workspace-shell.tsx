@@ -1,8 +1,26 @@
-import type { ReactNode } from "react";
-import { Bell, Command, LogOut, Menu, Plus, Search } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  BarChart3,
+  Bell,
+  BookOpen,
+  Bot,
+  Building2,
+  Command,
+  Inbox as InboxIcon,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Plus,
+  Radio,
+  Search,
+  Settings,
+  Shield,
+  Ticket,
+  Users,
+} from "lucide-react";
 import { useAuth } from "../../lib/auth";
 import { AppSidebar } from "./app-sidebar";
-import { Eyebrow, Heading } from "../ui";
+import { CommandPalette, Eyebrow, Heading, Sheet, type CommandItem } from "../ui";
 
 interface WorkspaceShellProps {
   title: string;
@@ -11,12 +29,69 @@ interface WorkspaceShellProps {
   actions?: ReactNode;
 }
 
+const navigationCommands: CommandItem[] = [
+  { id: "go-dashboard", label: "Dashboard", description: "Operator metrics and property summary", href: "/dashboard", icon: LayoutDashboard, group: "Navigation", keywords: "home overview metrics" },
+  { id: "go-inbox", label: "Inbox", description: "All open conversations", href: "/inbox/all", icon: InboxIcon, group: "Navigation", keywords: "queue conversations support" },
+  { id: "go-inbox-unassigned", label: "Unassigned inbox", description: "Conversations with no owner", href: "/inbox/unassigned", icon: InboxIcon, group: "Navigation", keywords: "unassigned triage" },
+  { id: "go-inbox-sla", label: "SLA at risk", description: "Queue filtered to SLA risk", href: "/inbox/sla_at_risk", icon: InboxIcon, group: "Navigation", keywords: "sla breached at risk" },
+  { id: "go-tickets", label: "Tickets", description: "Linked work objects", href: "/tickets", icon: Ticket, group: "Navigation" },
+  { id: "go-customers", label: "Customers", description: "Companies and contacts", href: "/customers", icon: Users, group: "Navigation", keywords: "companies accounts" },
+  { id: "go-settings", label: "Settings", description: "Inboxes, workflows, and team config", href: "/settings", icon: Settings, group: "Navigation", keywords: "preferences config admin" },
+  { id: "go-platform", label: "Platform admin", description: "Properties, agents, and knowledge base", href: "/platform-dashboard", icon: Shield, group: "Navigation", keywords: "admin platform internal" },
+  { id: "go-agent", label: "Agent", href: "/agent", icon: Bot, group: "Workspace" },
+  { id: "go-knowledge", label: "Knowledge", href: "/knowledge", icon: BookOpen, group: "Workspace" },
+  { id: "go-reports", label: "Reports", href: "/reports", icon: BarChart3, group: "Workspace" },
+  { id: "go-outbound", label: "Outbound", href: "/outbound", icon: Radio, group: "Workspace" },
+  { id: "go-contacts", label: "Contacts", href: "/contacts", icon: Building2, group: "Workspace" },
+];
+
 export function WorkspaceShell({ title, children, eyebrow = "Support workspace", actions }: WorkspaceShellProps) {
   const { user, logout } = useAuth();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping = target && (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable
+      );
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteOpen((open) => !open);
+      } else if (event.key === "/" && !isTyping) {
+        event.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const commands: CommandItem[] = [
+    ...navigationCommands,
+    {
+      id: "action-signout",
+      label: "Sign out",
+      description: "End your workspace session",
+      icon: LogOut,
+      group: "Account",
+      onRun: () => logout(),
+    },
+  ];
 
   return (
     <div className="flex min-h-screen bg-transparent text-slate-900">
       <AppSidebar />
+
+      <Sheet open={navOpen} onClose={() => setNavOpen(false)} ariaLabel="Workspace navigation">
+        <AppSidebar embedded onNavigate={() => setNavOpen(false)} />
+      </Sheet>
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 border-b border-slate-200/90 bg-white/85 px-4 py-4 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75 sm:px-6 lg:px-8">
@@ -24,8 +99,9 @@ export function WorkspaceShell({ title, children, eyebrow = "Support workspace",
             <div className="flex items-start gap-3">
               <button
                 type="button"
-                className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm lg:hidden"
-                aria-label="Workspace navigation"
+                onClick={() => setNavOpen(true)}
+                className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 lg:hidden"
+                aria-label="Open workspace navigation"
               >
                 <Menu className="h-4 w-4" />
               </button>
@@ -38,18 +114,23 @@ export function WorkspaceShell({ title, children, eyebrow = "Support workspace",
 
             <div className="flex flex-col gap-3 xl:items-end">
               <div className="flex flex-wrap items-center gap-2">
-                <div className="flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-500 shadow-sm min-[420px]:min-w-[300px]">
+                <button
+                  type="button"
+                  onClick={() => setPaletteOpen(true)}
+                  className="flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-white min-[420px]:min-w-[300px]"
+                  aria-label="Open command palette"
+                >
                   <Search className="h-4 w-4" />
-                  <span className="flex-1">Search conversations, tickets, or customers</span>
+                  <span className="flex-1 text-left">Search conversations, tickets, or customers</span>
                   <span className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-400 shadow-sm">
                     <Command className="inline h-3 w-3" />K
                   </span>
-                </div>
+                </button>
                 <button className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50">
                   <Plus className="h-4 w-4" />
                   Create
                 </button>
-                <button className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50">
+                <button className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50" aria-label="Notifications">
                   <Bell className="h-4 w-4" />
                 </button>
                 {actions}

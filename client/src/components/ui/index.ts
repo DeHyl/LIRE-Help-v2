@@ -6,4 +6,7 @@ export { Input, Textarea, Select, FieldLabel } from "./input";
 export { Skeleton, SkeletonText, SkeletonCard, SkeletonRow } from "./skeleton";
 export { EmptyState, ErrorState } from "./empty-state";
 export { Heading, Eyebrow, Caption } from "./heading";
+export { Dialog } from "./dialog";
+export { Sheet } from "./sheet";
+export { CommandPalette, type CommandItem } from "./command-palette";
 export { cn } from "./cn";

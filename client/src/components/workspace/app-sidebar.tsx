@@ -37,11 +37,19 @@ function isItemActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  embedded?: boolean;
+  onNavigate?: () => void;
+}
+
+export function AppSidebar({ embedded = false, onNavigate }: AppSidebarProps = {}) {
   const [location] = useLocation();
+  const asideClass = embedded
+    ? "flex h-full w-full flex-col bg-[#f5f7f8]"
+    : "hidden w-[304px] shrink-0 border-r border-slate-200 bg-[#f5f7f8] lg:flex lg:flex-col";
 
   return (
-    <aside className="hidden w-[304px] shrink-0 border-r border-slate-200 bg-[#f5f7f8] lg:flex lg:flex-col">
+    <aside className={asideClass}>
       <div className="border-b border-slate-200 px-6 py-6">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-[1.35rem] bg-slate-950 text-white shadow-sm">
@@ -76,6 +84,7 @@ export function AppSidebar() {
             return (
               <Link key={item.href} href={item.href}>
                 <a
+                  onClick={() => onNavigate?.()}
                   className={[
                     "group flex items-center gap-3 rounded-[22px] border px-3 py-3 transition-all",
                     active
@@ -122,6 +131,7 @@ export function AppSidebar() {
             return (
               <Link key={item.href} href={item.href}>
                 <a
+                  onClick={() => onNavigate?.()}
                   className={[
                     "flex items-center gap-3 rounded-2xl border px-3 py-3 text-sm font-medium transition-all",
                     active
@@ -140,7 +150,10 @@ export function AppSidebar() {
 
       <div className="border-t border-slate-200 px-4 py-4">
         <Link href="/settings">
-          <a className="flex items-center gap-3 rounded-[22px] border border-slate-200 bg-white px-4 py-4 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">
+          <a
+            onClick={() => onNavigate?.()}
+            className="flex items-center gap-3 rounded-[22px] border border-slate-200 bg-white px-4 py-4 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+          >
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
               <UserCircle2 className="h-5 w-5" />
             </div>
