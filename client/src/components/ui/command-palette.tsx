@@ -101,32 +101,32 @@ export function CommandPalette({ open, onClose, commands, placeholder = "Jump to
 
   return (
     <Dialog open={open} onClose={onClose} placement="top" ariaLabel="Command palette" initialFocusRef={inputRef}>
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-float">
-        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
-          <Search className="h-4 w-4 text-slate-400" aria-hidden />
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-float dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+          <Search className="h-4 w-4 text-slate-400 dark:text-slate-500" aria-hidden />
           <input
             ref={inputRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+            className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
             aria-label="Search commands"
           />
-          <kbd className="hidden items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-500 sm:inline-flex">
+          <kbd className="hidden items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-500 sm:inline-flex dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
             ESC
           </kbd>
         </div>
 
         <div ref={listRef} className="max-h-[55vh] overflow-y-auto py-1">
           {filtered.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-slate-500">
+            <div className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
               No matching commands.
             </div>
           ) : (
             grouped.map(([group, items]) => (
               <div key={group} className="mb-1 last:mb-0">
-                <p className="px-4 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{group}</p>
+                <p className="px-4 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">{group}</p>
                 {items.map((cmd) => {
                   const index = filtered.indexOf(cmd);
                   const active = index === activeIndex;
@@ -140,25 +140,29 @@ export function CommandPalette({ open, onClose, commands, placeholder = "Jump to
                       onClick={() => runCommand(cmd)}
                       className={cn(
                         "flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors",
-                        active ? "bg-slate-100 text-slate-950" : "text-slate-700 hover:bg-slate-50",
+                        active
+                          ? "bg-slate-100 text-slate-950 dark:bg-slate-800 dark:text-slate-100"
+                          : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/60",
                       )}
                     >
                       <span className={cn(
                         "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
-                        active ? "bg-white text-slate-800 shadow-sm" : "bg-slate-100 text-slate-500",
+                        active
+                          ? "bg-white text-slate-800 shadow-sm dark:bg-slate-900 dark:text-slate-200"
+                          : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
                       )}>
                         <Icon className="h-4 w-4" aria-hidden />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{cmd.label}</span>
                         {cmd.description ? (
-                          <span className="block truncate text-xs text-slate-500">{cmd.description}</span>
+                          <span className="block truncate text-xs text-slate-500 dark:text-slate-400">{cmd.description}</span>
                         ) : null}
                       </span>
                       {active ? (
-                        <CornerDownLeft className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+                        <CornerDownLeft className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" aria-hidden />
                       ) : cmd.shortcut ? (
-                        <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-500">{cmd.shortcut}</kbd>
+                        <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{cmd.shortcut}</kbd>
                       ) : null}
                     </button>
                   );
@@ -168,15 +172,15 @@ export function CommandPalette({ open, onClose, commands, placeholder = "Jump to
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-4 py-2 text-[11px] text-slate-500">
+        <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-4 py-2 text-[11px] text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1">
-              <kbd className="rounded-md border border-slate-200 bg-white px-1 font-mono text-[10px] font-semibold text-slate-500">↑</kbd>
-              <kbd className="rounded-md border border-slate-200 bg-white px-1 font-mono text-[10px] font-semibold text-slate-500">↓</kbd>
+              <kbd className="rounded-md border border-slate-200 bg-white px-1 font-mono text-[10px] font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">↑</kbd>
+              <kbd className="rounded-md border border-slate-200 bg-white px-1 font-mono text-[10px] font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">↓</kbd>
               to navigate
             </span>
             <span className="inline-flex items-center gap-1">
-              <kbd className="rounded-md border border-slate-200 bg-white px-1 font-mono text-[10px] font-semibold text-slate-500">↵</kbd>
+              <kbd className="rounded-md border border-slate-200 bg-white px-1 font-mono text-[10px] font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">↵</kbd>
               to select
             </span>
           </div>

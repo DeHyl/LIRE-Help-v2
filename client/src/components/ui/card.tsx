@@ -14,10 +14,12 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const variants: Record<CardVariant, string> = {
-  solid: "border border-slate-200 bg-white shadow-card",
-  soft: "border border-slate-200 bg-slate-50",
-  dashed: "border border-dashed border-slate-300 bg-slate-50",
-  inverted: "border border-slate-800 bg-slate-950 text-slate-50 shadow-card",
+  solid: "border border-slate-200 bg-white shadow-card dark:border-slate-800 dark:bg-slate-900",
+  soft: "border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/60",
+  dashed:
+    "border border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/40",
+  inverted:
+    "border border-slate-800 bg-slate-950 text-slate-50 shadow-card dark:border-slate-700 dark:bg-black",
 };
 
 const paddings: Record<CardPadding, string> = {
@@ -28,7 +30,7 @@ const paddings: Record<CardPadding, string> = {
 };
 
 const interactiveClass =
-  "cursor-pointer transition hover:border-slate-300 hover:bg-slate-50 hover:shadow-raised";
+  "cursor-pointer transition hover:border-slate-300 hover:bg-slate-50 hover:shadow-raised dark:hover:border-slate-700 dark:hover:bg-slate-800/60";
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
   { className, variant = "solid", padding = "md", interactive, as: _as = "div", children, ...rest },

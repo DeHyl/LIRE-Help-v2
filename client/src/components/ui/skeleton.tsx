@@ -16,7 +16,7 @@ export function SkeletonText({ lines = 3, className }: { lines?: number; classNa
 
 export function SkeletonCard({ className }: { className?: string }) {
   return (
-    <div className={cn("rounded-card border border-slate-200 bg-white p-5 shadow-card", className)} aria-hidden>
+    <div className={cn("rounded-card border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900", className)} aria-hidden>
       <div className="flex items-start justify-between gap-3">
         <Skeleton className="h-4 w-32" />
         <Skeleton className="h-10 w-10 rounded-2xl" />
@@ -29,7 +29,7 @@ export function SkeletonCard({ className }: { className?: string }) {
 
 export function SkeletonRow() {
   return (
-    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-slate-200 px-5 py-4" aria-hidden>
+    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800" aria-hidden>
       <div className="min-w-0 space-y-2">
         <div className="flex items-center gap-2">
           <Skeleton className="h-4 w-36" />

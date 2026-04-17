@@ -36,7 +36,7 @@ export function Sheet({ open, onClose, side = "left", children, ariaLabel, class
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm dark:bg-black/60"
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel}
@@ -44,12 +44,12 @@ export function Sheet({ open, onClose, side = "left", children, ariaLabel, class
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className={cn("absolute top-0 bottom-0 flex w-full max-w-[20rem] flex-col bg-white shadow-float", sideClasses, className)}>
+      <div className={cn("absolute top-0 bottom-0 flex w-full max-w-[20rem] flex-col bg-white shadow-float dark:bg-slate-900 dark:border-slate-800", sideClasses, className)}>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close navigation"
-          className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50"
+          className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
         >
           <X className="h-4 w-4" />
         </button>
