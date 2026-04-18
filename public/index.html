@@ -1,1073 +1,458 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LIRE Help — The AI operating layer for industrial property teams</title>
-  <meta name="description" content="LIRE Help is the AI operating layer for industrial property teams, unifying tenant conversations, maintenance triage, vendor coordination, and portfolio follow-through in one premium workspace." />
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="LIRE Help — The AI operating layer for industrial property teams" />
-  <meta property="og:description" content="One calmer, sharper operating system for tenant conversations, maintenance triage, vendor coordination, portfolio knowledge, and reporting." />
-  <meta property="og:locale" content="en_US" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%230f1720'/><rect x='18' y='18' width='18' height='64' fill='%23ffffff'/><rect x='42' y='18' width='18' height='42' fill='%23e11d48'/><rect x='42' y='66' width='18' height='16' fill='%23f4f4ef'/><rect x='66' y='18' width='16' height='64' fill='%232563eb'/></svg>" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --ink: #0d1720;
-      --ink-2: #13212d;
-      --paper: #f3f0e8;
-      --paper-2: #fbfaf6;
-      --white: #ffffff;
-      --line: rgba(13, 23, 32, 0.12);
-      --line-strong: rgba(13, 23, 32, 0.22);
-      --muted: #5f6b76;
-      --muted-2: #7b8792;
-      --blue: #2563eb;
-      --red: #e11d48;
-      --gold: #d7a928;
-      --slate: #dfe6eb;
-      --shadow: 0 28px 80px rgba(13, 23, 32, 0.12);
-      --radius-xl: 34px;
-      --radius-lg: 26px;
-      --radius-md: 18px;
-      --content: 1220px;
-    }
+<meta charset="utf-8"/>
+<title>LIRE Help · Operations OS</title>
+<link rel="stylesheet" href="design/colors_and_type.css"/>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body, #root { height: 100%; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg); color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  button { font-family: inherit; }
+  input, textarea, select { font-family: inherit; }
+  ::selection { background: var(--accent); color: #fff; }
 
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      font-family: 'Inter', system-ui, sans-serif;
-      background: linear-gradient(180deg, var(--paper-2) 0%, var(--paper) 100%);
-      color: var(--ink);
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
-    }
-    a { color: inherit; }
+  /* scrollbars: tight */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
+  .dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); background-clip: content-box; border: 2px solid transparent; }
 
-    .container {
-      width: min(var(--content), calc(100% - 32px));
-      margin: 0 auto;
-    }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 
-    .site-nav {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      backdrop-filter: blur(18px);
-      background: rgba(251, 250, 246, 0.84);
-      border-bottom: 1px solid rgba(13, 23, 32, 0.08);
-    }
-    .site-nav-inner {
-      min-height: 78px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-    }
-    .brand {
-      display: inline-flex;
-      align-items: center;
-      gap: 14px;
-      text-decoration: none;
-    }
-    .brand-mark {
-      width: 42px;
-      height: 42px;
-      border-radius: 14px;
-      background: var(--ink);
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 3px;
-      padding: 7px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
-    }
-    .brand-mark span:nth-child(1) { background: var(--white); }
-    .brand-mark span:nth-child(2) { background: var(--red); }
-    .brand-mark span:nth-child(3) { background: var(--blue); }
-    .brand-copy small {
-      display: block;
-      margin-bottom: 2px;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      color: var(--muted-2);
-      font-weight: 700;
-    }
-    .brand-copy strong {
-      display: block;
-      font-size: 16px;
-      letter-spacing: -0.03em;
-    }
-
-    .nav-links,
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .nav-links {
-      gap: 22px;
-      font-size: 14px;
-      color: var(--muted);
-    }
-    .nav-links a {
-      text-decoration: none;
-      font-weight: 500;
-    }
-    .nav-links a:hover { color: var(--ink); }
-
-    .button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      min-height: 46px;
-      padding: 0 18px;
-      border-radius: 999px;
-      border: 1px solid transparent;
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 700;
-      transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-    }
-    .button:hover { transform: translateY(-1px); }
-    .button-primary {
-      background: var(--ink);
-      color: var(--white);
-      box-shadow: 0 12px 30px rgba(13, 23, 32, 0.16);
-    }
-    .button-secondary {
-      background: rgba(255,255,255,0.7);
-      border-color: var(--line);
-      color: var(--ink);
-    }
-
-    .hero {
-      padding: 34px 0 44px;
-    }
-    .hero-shell {
-      display: grid;
-      grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
-      gap: 18px;
-      align-items: stretch;
-    }
-    .hero-copy,
-    .hero-stage {
-      border-radius: var(--radius-xl);
-      overflow: hidden;
-      min-height: 660px;
-      box-shadow: var(--shadow);
-    }
-    .hero-copy {
-      position: relative;
-      background: linear-gradient(180deg, #f9f7f1 0%, #f1ede2 100%);
-      border: 1px solid rgba(13, 23, 32, 0.1);
-      padding: 34px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      isolation: isolate;
-    }
-    .hero-copy::before,
-    .hero-copy::after {
-      content: "";
-      position: absolute;
-      z-index: -1;
-    }
-    .hero-copy::before {
-      inset: 0 auto auto 0;
-      width: 26%;
-      height: 34%;
-      background: var(--red);
-    }
-    .hero-copy::after {
-      right: 0;
-      bottom: 0;
-      width: 30%;
-      height: 38%;
-      background: var(--blue);
-    }
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      min-height: 34px;
-      padding: 0 14px;
-      border-radius: 999px;
-      border: 1px solid rgba(13, 23, 32, 0.12);
-      background: rgba(255,255,255,0.72);
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-      width: fit-content;
-    }
-    .eyebrow-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: var(--gold);
-      box-shadow: 0 0 0 5px rgba(215,169,40,0.18);
-    }
-    h1 {
-      margin: 20px 0 18px;
-      max-width: 720px;
-      font-size: clamp(2.25rem, 4.2vw, 4rem);
-      line-height: 1.02;
-      letter-spacing: -0.045em;
-      word-break: normal;
-      overflow-wrap: break-word;
-      hyphens: auto;
-    }
-    .hero-subcopy {
-      max-width: 620px;
-      font-size: 18px;
-      line-height: 1.72;
-      color: var(--muted);
-      margin: 0;
-    }
-    .hero-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 28px;
-    }
-    .hero-points {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0,1fr));
-      gap: 12px;
-      margin-top: 34px;
-    }
-    .point {
-      background: rgba(255,255,255,0.76);
-      border: 1px solid rgba(13, 23, 32, 0.1);
-      border-radius: var(--radius-md);
-      padding: 16px;
-      backdrop-filter: blur(8px);
-    }
-    .point strong {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 22px;
-      letter-spacing: -0.05em;
-    }
-    .point span {
-      display: block;
-      font-size: 13px;
-      line-height: 1.55;
-      color: var(--muted);
-    }
-    .hero-footnote {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding-top: 28px;
-      margin-top: 28px;
-      border-top: 1px solid rgba(13, 23, 32, 0.1);
-      color: var(--muted-2);
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      font-weight: 700;
-    }
-
-    .hero-stage {
-      background: var(--ink);
-      padding: 18px;
-      color: var(--white);
-      display: grid;
-      gap: 14px;
-      grid-template-rows: auto 1fr auto;
-      border: 1px solid rgba(13, 23, 32, 0.08);
-    }
-    .stage-top {
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 14px;
-    }
-    .stage-block,
-    .stage-strip,
-    .workspace-frame,
-    .module-card,
-    .detail-card,
-    .thread-card,
-    .signal-card {
-      border-radius: 24px;
-      overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.08);
-    }
-    .stage-block {
-      min-height: 184px;
-      background: linear-gradient(180deg, #f3eee4 0%, #efe8da 100%);
-      color: var(--ink);
-      padding: 22px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .stage-block strong {
-      font-size: 15px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--muted-2);
-    }
-    .stage-block h2 {
-      margin: 0;
-      font-size: clamp(2rem, 3vw, 2.8rem);
-      line-height: 1;
-      letter-spacing: -0.06em;
-      max-width: 320px;
-    }
-    .stage-strip {
-      background: linear-gradient(180deg, #295ef2 0%, #17389b 100%);
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .stage-strip small,
-    .signal-card small {
-      display: block;
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      opacity: 0.7;
-    }
-    .stage-strip strong {
-      display: block;
-      font-size: 32px;
-      line-height: 1;
-      letter-spacing: -0.06em;
-      margin: 8px 0;
-    }
-    .stage-strip span,
-    .signal-card span,
-    .detail-card span,
-    .thread-card span,
-    .module-card p {
-      font-size: 13px;
-      line-height: 1.55;
-      opacity: 0.82;
-    }
-
-    .workspace-frame {
-      background: #f5f2ea;
-      color: var(--ink);
-      padding: 14px;
-      display: grid;
-      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr) minmax(0, 0.95fr);
-      gap: 12px;
-      min-height: 370px;
-    }
-    .frame-column {
-      border-radius: 22px;
-      background: rgba(255,255,255,0.72);
-      border: 1px solid rgba(13, 23, 32, 0.08);
-      padding: 14px;
-      display: grid;
-      gap: 10px;
-      align-content: start;
-    }
-    .frame-label {
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--muted-2);
-    }
-    .module-card,
-    .detail-card,
-    .thread-card {
-      background: rgba(255,255,255,0.86);
-      color: var(--ink);
-      padding: 13px 14px;
-      border: 1px solid rgba(13, 23, 32, 0.08);
-    }
-    .module-card.active {
-      background: var(--ink);
-      color: var(--white);
-      border-color: var(--ink);
-    }
-    .module-card strong,
-    .detail-card strong,
-    .thread-card strong {
-      display: block;
-      font-size: 13px;
-      letter-spacing: -0.01em;
-      margin-bottom: 4px;
-    }
-    .signal-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0,1fr));
-      gap: 14px;
-    }
-    .signal-card {
-      min-height: 112px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .signal-card.red { background: var(--red); }
-    .signal-card.blue { background: #2446b8; }
-    .signal-card.neutral { background: #1c2c39; }
-    .signal-card strong {
-      font-size: 30px;
-      line-height: 1;
-      letter-spacing: -0.06em;
-    }
-
-    .section {
-      padding: 26px 0;
-    }
-    .section-header {
-      display: grid;
-      grid-template-columns: 0.9fr 1.1fr;
-      gap: 16px;
-      align-items: end;
-      margin-bottom: 22px;
-    }
-    .section-label {
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted-2);
-    }
-    .section-header h2 {
-      margin: 10px 0 0;
-      font-size: clamp(2.1rem, 4vw, 3.6rem);
-      line-height: 0.98;
-      letter-spacing: -0.06em;
-      max-width: 620px;
-    }
-    .section-header p {
-      margin: 0;
-      max-width: 670px;
-      font-size: 17px;
-      line-height: 1.72;
-      color: var(--muted);
-    }
-
-    .editorial-grid {
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 18px;
-    }
-    .panel,
-    .stack-card,
-    .capability,
-    .compare-card,
-    .cta-wrap,
-    .quote-card {
-      border-radius: var(--radius-lg);
-      border: 1px solid rgba(13, 23, 32, 0.1);
-      overflow: hidden;
-      background: rgba(255,255,255,0.72);
-      box-shadow: 0 10px 30px rgba(13,23,32,0.04);
-    }
-    .panel {
-      min-height: 420px;
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-    }
-    .panel-copy {
-      padding: 28px;
-      background: linear-gradient(180deg, #fbfaf6 0%, #f2eee3 100%);
-    }
-    .panel-copy h3,
-    .stack-card h3,
-    .compare-card h3,
-    .quote-card h3 {
-      margin: 0 0 12px;
-      font-size: 28px;
-      line-height: 1.05;
-      letter-spacing: -0.05em;
-    }
-    .panel-copy p,
-    .stack-card p,
-    .compare-card p,
-    .quote-card p,
-    .capability p,
-    .capability li {
-      margin: 0;
-      font-size: 15px;
-      line-height: 1.72;
-      color: var(--muted);
-    }
-    .panel-copy ul,
-    .capability ul,
-    .compare-card ul {
-      list-style: none;
-      padding: 0;
-      margin: 18px 0 0;
-      display: grid;
-      gap: 10px;
-    }
-    .panel-copy li,
-    .capability li,
-    .compare-card li {
-      position: relative;
-      padding-left: 18px;
-    }
-    .panel-copy li::before,
-    .capability li::before,
-    .compare-card li::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 9px;
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-      background: var(--ink);
-    }
-    .panel-graphic {
-      padding: 18px;
-      background: var(--ink);
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1.1fr 0.9fr;
-      gap: 10px;
-    }
-    .graphic-box {
-      border-radius: 22px;
-      padding: 18px;
-      color: var(--white);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .graphic-box:nth-child(1) { background: #1f4fd1; }
-    .graphic-box:nth-child(2) { background: #f5f0e5; color: var(--ink); }
-    .graphic-box:nth-child(3) { background: #d81f4d; }
-    .graphic-box:nth-child(4) { background: #22313d; }
-    .graphic-box strong {
-      font-size: 34px;
-      letter-spacing: -0.06em;
-      line-height: 1;
-    }
-    .graphic-box span {
-      font-size: 13px;
-      line-height: 1.55;
-      opacity: 0.82;
-    }
-
-    .stack {
-      display: grid;
-      gap: 18px;
-    }
-    .stack-card {
-      padding: 26px;
-      min-height: 201px;
-    }
-    .stack-card.dark {
-      background: var(--ink);
-      color: var(--white);
-      border-color: rgba(13, 23, 32, 0.9);
-    }
-    .stack-card.dark p,
-    .stack-card.dark .tiny {
-      color: rgba(255,255,255,0.74);
-    }
-    .tiny {
-      display: block;
-      margin-bottom: 12px;
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--muted-2);
-    }
-
-    .capability-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0,1fr));
-      gap: 16px;
-    }
-    .capability {
-      min-height: 260px;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .capability .index {
-      width: 38px;
-      height: 38px;
-      border-radius: 12px;
-      display: grid;
-      place-items: center;
-      background: var(--ink);
-      color: var(--white);
-      font-size: 13px;
-      font-weight: 800;
-    }
-    .capability h3 {
-      margin: 0;
-      font-size: 24px;
-      letter-spacing: -0.04em;
-    }
-
-    .compare-grid,
-    .quote-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0,1fr));
-      gap: 16px;
-    }
-    .compare-card,
-    .quote-card {
-      padding: 26px;
-    }
-    .compare-card strong,
-    .quote-card strong {
-      display: block;
-      margin-top: 18px;
-      font-size: 13px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--muted-2);
-    }
-
-    .cta {
-      padding: 26px 0 64px;
-    }
-    .cta-wrap {
-      background: var(--ink);
-      color: var(--white);
-      padding: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-    }
-    .cta-wrap h2 {
-      margin: 0;
-      font-size: clamp(2.2rem, 3vw, 3.4rem);
-      line-height: 0.98;
-      letter-spacing: -0.06em;
-      max-width: 620px;
-    }
-    .cta-wrap p {
-      margin: 12px 0 0;
-      max-width: 620px;
-      font-size: 16px;
-      line-height: 1.7;
-      color: rgba(255,255,255,0.76);
-    }
-    .cta-wrap .button-secondary {
-      background: rgba(255,255,255,0.08);
-      border-color: rgba(255,255,255,0.14);
-      color: var(--white);
-    }
-
-    footer {
-      padding: 0 0 34px;
-      color: var(--muted-2);
-      font-size: 13px;
-    }
-    .footer-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      padding-top: 18px;
-      border-top: 1px solid rgba(13, 23, 32, 0.1);
-    }
-    .footer-links {
-      display: flex;
-      gap: 18px;
-      flex-wrap: wrap;
-    }
-    .footer-links a {
-      text-decoration: none;
-      color: inherit;
-    }
-
-    @media (max-width: 1280px) {
-      .hero-shell {
-        grid-template-columns: minmax(0, 1fr);
-      }
-      .hero-stage {
-        min-height: auto;
-      }
-    }
-
-    @media (max-width: 1120px) {
-      .hero-shell,
-      .editorial-grid,
-      .section-header,
-      .capability-grid,
-      .compare-grid,
-      .quote-grid,
-      .panel,
-      .stage-top,
-      .workspace-frame,
-      .signal-grid {
-        grid-template-columns: 1fr;
-      }
-      .workspace-frame .frame-column:last-child {
-        grid-column: auto;
-      }
-      .panel-graphic {
-        min-height: 320px;
-      }
-      .hero-copy,
-      .hero-stage {
-        min-height: auto;
-      }
-      .hero-points {
-        grid-template-columns: 1fr;
-      }
-      .cta-wrap,
-      .footer-inner {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-    }
-
-    @media (max-width: 760px) {
-      .nav-links { display: none; }
-      .site-nav-inner {
-        padding: 14px 0;
-        align-items: flex-start;
-        flex-wrap: wrap;
-      }
-      .nav-actions { width: 100%; flex-wrap: wrap; }
-      .hero { padding-top: 18px; }
-      .hero-copy,
-      .hero-stage,
-      .panel-copy,
-      .stack-card,
-      .capability,
-      .compare-card,
-      .quote-card,
-      .cta-wrap {
-        padding-left: 20px;
-        padding-right: 20px;
-      }
-      h1 { font-size: clamp(2.5rem, 12vw, 4rem); }
-      .hero-subcopy,
-      .section-header p,
-      .cta-wrap p { font-size: 16px; }
-    }
-  </style>
+  /* Compact density adjustments applied on root */
+  .density-comfortable { --density-row: 12px; }
+  .density-compact { --density-row: 8px; }
+</style>
 </head>
 <body>
-  <nav class="site-nav">
-    <div class="container site-nav-inner">
-      <a class="brand" href="#top" aria-label="LIRE Help home">
-        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
-        <span class="brand-copy">
-          <small>Industrial property AI</small>
-          <strong>LIRE Help</strong>
-        </span>
-      </a>
+<div id="root"></div>
 
-      <div class="nav-links">
-        <a href="#platform">Platform</a>
-        <a href="#products">Products</a>
-        <a href="#difference">Why it wins</a>
+<script>
+// Tweakable defaults (editable via Tweaks panel)
+const LIRE_TWEAKS = /*EDITMODE-BEGIN*/{
+  "theme": "light",
+  "density": "comfortable",
+  "aiPanel": true,
+  "accent": "#FF4D00",
+  "conciergeHero": "A",
+  "entry": "landing",
+  "landingHero": "A"
+}/*EDITMODE-END*/;
+window.LIRE_TWEAKS_INITIAL = LIRE_TWEAKS;
+</script>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="design/data.js"></script>
+<script type="text/babel" src="design/Primitives.jsx"></script>
+<script type="text/babel" src="design/Shell.jsx"></script>
+<script type="text/babel" src="design/InboxScreen.jsx"></script>
+<script type="text/babel" src="design/OtherScreens.jsx"></script>
+<script type="text/babel" src="design/ConciergeScreen.jsx"></script>
+<script type="text/babel" src="design/ConciergeTabs.jsx"></script>
+<script type="text/babel" src="design/LandingLogin.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback } = React;
+
+function TweaksPanel({ open, tweaks, onChange, onClose }) {
+  if (!open) return null;
+  const setT = (k, v) => onChange({ ...tweaks, [k]: v });
+  return (
+    <div style={{
+      position: "fixed", right: 16, bottom: 16, width: 280, zIndex: 90,
+      background: "var(--surface)", border: "1px solid var(--border)",
+      borderRadius: 4, boxShadow: "var(--shadow-menu)",
+    }}>
+      <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center" }}>
+        <div style={{ flex: 1 }}>
+          <Eyebrow>Tweaks</Eyebrow>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600, color: "var(--fg)", marginTop: 2 }}>
+            Prototype settings
+          </div>
+        </div>
+        <Btn size="icon" variant="ghost" onClick={onClose} icon={<Icon.X size={14}/>}/>
       </div>
-
-      <div class="nav-actions">
-        <a class="button button-secondary" href="mailto:hello@lire-help.com?subject=LIRE%20Help%20demo">Book demo</a>
-        <a class="button button-primary" href="/login">Start free trial</a>
+      <div style={{ padding: 14, display: "grid", gap: 14 }}>
+        <div>
+          <Eyebrow style={{ fontSize: 10, marginBottom: 6 }}>Theme</Eyebrow>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+            {["light","dark"].map(v => (
+              <Btn key={v} size="sm" variant={tweaks.theme === v ? "dark" : "secondary"} onClick={() => setT("theme", v)}>
+                {v[0].toUpperCase()+v.slice(1)}
+              </Btn>
+            ))}
+          </div>
+        </div>
+        <div>
+          <Eyebrow style={{ fontSize: 10, marginBottom: 6 }}>Density</Eyebrow>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+            {[
+              { k: "comfortable", l: "Comfortable" },
+              { k: "compact",     l: "Compact" },
+            ].map(v => (
+              <Btn key={v.k} size="sm" variant={tweaks.density === v.k ? "dark" : "secondary"} onClick={() => setT("density", v.k)}>
+                {v.l}
+              </Btn>
+            ))}
+          </div>
+        </div>
+        <div>
+          <Eyebrow style={{ fontSize: 10, marginBottom: 6 }}>AI Concierge panel</Eyebrow>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+            <Btn size="sm" variant={tweaks.aiPanel ? "dark" : "secondary"} onClick={() => setT("aiPanel", true)}>Visible</Btn>
+            <Btn size="sm" variant={!tweaks.aiPanel ? "dark" : "secondary"} onClick={() => setT("aiPanel", false)}>Hidden</Btn>
+          </div>
+        </div>
+        <div>
+          <Eyebrow style={{ fontSize: 10, marginBottom: 6 }}>View</Eyebrow>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4 }}>
+            {[
+              { k: "landing", l: "Landing" },
+              { k: "login",   l: "Login" },
+              { k: "app",     l: "App" },
+            ].map(v => (
+              <Btn key={v.k} size="sm" variant={tweaks.entry === v.k ? "dark" : "secondary"} onClick={() => setT("entry", v.k)}>{v.l}</Btn>
+            ))}
+          </div>
+        </div>
+        <div>
+          <Eyebrow style={{ fontSize: 10, marginBottom: 6 }}>Landing hero</Eyebrow>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+            {[
+              { k: "A", l: "Editorial" },
+              { k: "B", l: "Narrative" },
+            ].map(v => (
+              <Btn key={v.k} size="sm" variant={tweaks.landingHero === v.k ? "dark" : "secondary"} onClick={() => setT("landingHero", v.k)}>{v.l}</Btn>
+            ))}
+          </div>
+        </div>
+        <div>
+          <Eyebrow style={{ fontSize: 10, marginBottom: 6 }}>Concierge hero</Eyebrow>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+            {[
+              { k: "A", l: "Control room" },
+              { k: "B", l: "Meet agent" },
+            ].map(v => (
+              <Btn key={v.k} size="sm" variant={tweaks.conciergeHero === v.k ? "dark" : "secondary"} onClick={() => setT("conciergeHero", v.k)}>{v.l}</Btn>
+            ))}
+          </div>
+        </div>
+        <div>
+          <Eyebrow style={{ fontSize: 10, marginBottom: 6 }}>Accent</Eyebrow>
+          <div style={{ display: "flex", gap: 6 }}>
+            {["#FF4D00","#111111","#0B6B4A","#3D5BFF"].map(c => (
+              <button key={c} onClick={() => setT("accent", c)}
+                style={{
+                  width: 26, height: 26, borderRadius: 3, border: tweaks.accent === c ? "2px solid var(--fg)" : "1px solid var(--border)",
+                  background: c, cursor: "pointer", padding: 0,
+                }} title={c}/>
+            ))}
+          </div>
+        </div>
+        <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--fg-muted)", lineHeight: 1.5 }}>
+          Tip: <Kbd>⌘K</Kbd> for command palette · <Kbd>J</Kbd>/<Kbd>K</Kbd> to navigate the queue.
+        </div>
       </div>
     </div>
-  </nav>
+  );
+}
 
-  <main id="top">
-    <section class="hero">
-      <div class="container hero-shell">
-        <div class="hero-copy">
-          <div>
-            <div class="eyebrow"><span class="eyebrow-dot"></span> AI-native operations for industrial portfolios</div>
-            <h1>The AI operating layer for industrial property teams.</h1>
-            <p class="hero-subcopy">
-              LIRE Help replaces scattered inboxes, lease PDFs, vendor call chains, and fragile follow-up with one system for tenant operations. It helps teams respond faster, escalate cleaner, and keep portfolio context intact across every issue.
-            </p>
-            <div class="hero-actions">
-              <a class="button button-primary" href="/login">Start free trial</a>
-              <a class="button button-secondary" href="mailto:hello@lire-help.com?subject=LIRE%20Help%20demo">Book demo</a>
-            </div>
-            <div class="hero-points">
-              <div class="point">
-                <strong>24/7</strong>
-                <span>Tenant communication, maintenance triage, and next-step orchestration without waiting for office hours.</span>
-              </div>
-              <div class="point">
-                <strong>6 modules</strong>
-                <span>Inbox, Agent, Knowledge, Reports, Outbound, and Contacts in one shared operating model.</span>
-              </div>
-              <div class="point">
-                <strong>1 control layer</strong>
-                <span>Keep the narrative clarity of who owns what, what happened, and what the portfolio needs next.</span>
-              </div>
-            </div>
-          </div>
+function App() {
+  const initial = window.LIRE_TWEAKS_INITIAL || { theme: "light", density: "comfortable", aiPanel: true, accent: "#FF4D00", conciergeHero: "A", entry: "landing", landingHero: "A" };
+  const [tweaks, setTweaks] = useState(initial);
+  const [view, setView] = useState(() => localStorage.getItem("lire.view_route") || initial.entry || "landing");
+  useEffect(() => { localStorage.setItem("lire.view_route", view); }, [view]);
 
-          <div class="hero-footnote">
-            <span>Designed to feel clear, confident, and operationally sharp</span>
-            <span>Built for industrial operators</span>
-          </div>
-        </div>
+  // Signed-in user. Populated by LoginScreen via onApp(email).
+  // For landing "Walk the demo" (no email), we use a generic placeholder — nothing about roles yet.
+  const makeUser = (email) => {
+    const e = (email || "").trim().toLowerCase();
+    if (!e) return { email: "", name: "Guest", initials: "•", authed: false };
+    const local = e.split("@")[0] || "you";
+    const parts = local.split(/[._\-+]/).filter(Boolean);
+    const name = parts.length
+      ? parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(" ")
+      : local.charAt(0).toUpperCase() + local.slice(1);
+    const initials = parts.length >= 2
+      ? (parts[0][0] + parts[1][0]).toUpperCase()
+      : (local[0] + (local[1] || local[0])).toUpperCase();
+    return { email: e, name, initials, authed: true };
+  };
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem("lire.user_email");
+    if (saved) return makeUser(saved);
+    // No stored auth — if demo entry goes straight to app, show a demo account rather than "Guest".
+    return (initial.entry === "app") ? makeUser("demo@lire.app") : makeUser("");
+  });
+  const signIn = useCallback((email) => {
+    const u = makeUser(email);
+    setUser(u);
+    if (u.authed) localStorage.setItem("lire.user_email", u.email);
+    setView("app");
+  }, []);
+  // When the user toggles 'entry' in Tweaks, jump to that view immediately (but skip the initial mount)
+  const didMount = React.useRef(false);
+  useEffect(() => {
+    if (!didMount.current) { didMount.current = true; return; }
+    if (tweaks.entry) setView(tweaks.entry);
+  }, [tweaks.entry]);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+  const [tweaksAvailable, setTweaksAvailable] = useState(false);
 
-        <div class="hero-stage" id="platform" aria-label="LIRE Help platform preview">
-          <div class="stage-top">
-            <div class="stage-block">
-              <strong>Portfolio command</strong>
-              <h2>From 2 AM dock door failure to closed-loop execution.</h2>
-            </div>
-            <div class="stage-strip">
-              <div>
-                <small>Agent layer</small>
-                <strong>90%</strong>
-                <span>Routine triage, routing, memory retrieval, and reporting handled before a human touches the thread.</span>
-              </div>
-              <small>Human judgment stays on exceptions</small>
-            </div>
-          </div>
+  const [nav, setNav] = useState(() => localStorage.getItem("lire.nav") || "inbox");
+  const [viewKey, setViewKey] = useState(() => localStorage.getItem("lire.view") || "priority");
+  const [selectedId, setSelectedId] = useState(() => localStorage.getItem("lire.selected") || "LIRE-4184");
+  const [cmdOpen, setCmdOpen] = useState(false);
+  const [newTicketOpen, setNewTicketOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("lire.sidebarCollapsed") === "1");
+  const [viewsCollapsed, setViewsCollapsed] = useState(() => localStorage.getItem("lire.viewsCollapsed") === "1");
+  const [focusMode, setFocusMode] = useState(() => localStorage.getItem("lire.focus") === "1");
 
-          <div class="workspace-frame">
-            <aside class="frame-column">
-              <div class="frame-label">Navigation</div>
-              <div class="module-card active"><strong>Inbox</strong><p>Urgent tenant conversations, exceptions, and follow-through.</p></div>
-              <div class="module-card"><strong>Agent</strong><p>Suggested actions, drafts, vendor routing, and operator assist.</p></div>
-              <div class="module-card"><strong>Knowledge</strong><p>Property rules, lease nuance, vendor memory, and SOP context.</p></div>
-              <div class="module-card"><strong>Reports</strong><p>Executive summaries, SLA health, portfolio signals, and trends.</p></div>
-              <div class="module-card"><strong>Outbound</strong><p>Proactive updates, reminders, nudges, and stakeholder follow-up.</p></div>
-              <div class="module-card"><strong>Contacts</strong><p>Tenants, vendors, internal owners, escalation paths, and roles.</p></div>
-            </aside>
+  // Persist
+  useEffect(() => { localStorage.setItem("lire.nav", nav); }, [nav]);
+  useEffect(() => { localStorage.setItem("lire.view", viewKey); }, [viewKey]);
+  useEffect(() => { localStorage.setItem("lire.selected", selectedId); }, [selectedId]);
+  useEffect(() => { localStorage.setItem("lire.sidebarCollapsed", sidebarCollapsed ? "1" : "0"); }, [sidebarCollapsed]);
+  useEffect(() => { localStorage.setItem("lire.viewsCollapsed", viewsCollapsed ? "1" : "0"); }, [viewsCollapsed]);
+  useEffect(() => { localStorage.setItem("lire.focus", focusMode ? "1" : "0"); }, [focusMode]);
 
-            <section class="frame-column">
-              <div class="frame-label">Active issue</div>
-              <div class="detail-card"><strong>Dock 4 overhead door jammed</strong><span>Oakland Gateway, Building C · tenant flagged obstruction during overnight loading window.</span></div>
-              <div class="detail-card"><strong>Agent recommendation</strong><span>Acknowledge immediately, pull preferred vendor, attach door history, and prep incident summary for PM review.</span></div>
-              <div class="detail-card"><strong>Suggested next touch</strong><span>Send tenant update in 2 minutes, vendor dispatch in 6, manager brief in 12.</span></div>
-              <div class="thread-card"><strong>Tenant message</strong><span>“Driver is blocked. Door opened halfway, then stalled. Need direction now.”</span></div>
-              <div class="thread-card"><strong>Internal note</strong><span>Same asset showed a belt tension warning last quarter. Vendor contact and service log already attached.</span></div>
-            </section>
+  const toggleFocus = useCallback(() => {
+    setFocusMode(f => {
+      const next = !f;
+      // Focus mode: collapse both panels together. Exiting focus restores them both.
+      setSidebarCollapsed(next);
+      setViewsCollapsed(next);
+      return next;
+    });
+  }, []);
 
-            <aside class="frame-column">
-              <div class="frame-label">Portfolio context</div>
-              <div class="detail-card"><strong>Status</strong><span>Emergency triage active</span></div>
-              <div class="detail-card"><strong>Owner</strong><span>Regional operations manager</span></div>
-              <div class="detail-card"><strong>SLA clock</strong><span>Healthy, response window open</span></div>
-              <div class="detail-card"><strong>Vendor path</strong><span>Delta Door Systems → after-hours dispatch</span></div>
-            </aside>
-          </div>
+  // Theme application
+  useEffect(() => {
+    const html = document.documentElement;
+    if (tweaks.theme === "dark") html.classList.add("dark");
+    else html.classList.remove("dark");
+    html.style.setProperty("--accent", tweaks.accent);
+    html.style.setProperty("--accent-hover",
+      tweaks.accent === "#FF4D00" ? "#E54400"
+      : tweaks.accent === "#111111" ? "#000"
+      : tweaks.accent === "#0B6B4A" ? "#085539"
+      : "#2647D4");
+    html.style.setProperty("--accent-press",
+      tweaks.accent === "#FF4D00" ? "#CC3D00"
+      : tweaks.accent === "#111111" ? "#000"
+      : tweaks.accent === "#0B6B4A" ? "#064128"
+      : "#1D34A8");
+  }, [tweaks.theme, tweaks.accent]);
 
-          <div class="signal-grid">
-            <div class="signal-card red"><small>Signal</small><strong>18</strong><span>Active issues with AI drafts prepared and routed.</span></div>
-            <div class="signal-card blue"><small>Knowledge</small><strong>426</strong><span>Property rules, lease notes, and vendor memories available to the agent.</span></div>
-            <div class="signal-card neutral"><small>Reports</small><strong>7:15</strong><span>AM portfolio brief ready before the team logs in.</span></div>
-          </div>
-        </div>
+  // Mutable tickets + timelines (so compose + triage actually update UI)
+  const [tickets, setTickets] = useState(LIRE_DATA.tickets);
+  const [timelineMap, setTimelineMap] = useState(LIRE_DATA.timelines);
+
+  const handleTriage = useCallback((field, value) => {
+    setTickets(prev => prev.map(t => t.id === selectedId ? { ...t, [field]: value, assigneeKind: field === "assignee" ? (value === "AI Concierge" ? "ai" : value ? "human" : null) : t.assigneeKind } : t));
+  }, [selectedId]);
+
+  const handleSend = useCallback((mode, body, channel) => {
+    const id = `m-${Date.now()}`;
+    const whoName = (user && user.name) ? user.name : "You";
+    const newMsg = mode === "note"
+      ? { id, kind: "internal", who: `${whoName} (note)`, at: "Just now", body }
+      : { id, kind: "teammate", who: `${whoName} · You`, at: "Just now", channel, body };
+    setTimelineMap(prev => ({ ...prev, [selectedId]: [...(prev[selectedId] || []), newMsg] }));
+    setTickets(prev => prev.map(t => t.id === selectedId ? { ...t, lastActivity: "just now", messageCount: t.messageCount + 1 } : t));
+  }, [selectedId, user]);
+
+  // Command palette
+  useEffect(() => {
+    const h = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setCmdOpen(true); }
+      if (e.key === "Escape") setCmdOpen(false);
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
+  // Edit mode protocol
+  useEffect(() => {
+    const listener = (e) => {
+      if (!e || !e.data || typeof e.data !== "object") return;
+      if (e.data.type === "__activate_edit_mode") setTweaksOpen(true);
+      if (e.data.type === "__deactivate_edit_mode") setTweaksOpen(false);
+    };
+    window.addEventListener("message", listener);
+    window.parent && window.parent.postMessage({ type: "__edit_mode_available" }, "*");
+    setTweaksAvailable(true);
+    return () => window.removeEventListener("message", listener);
+  }, []);
+
+  const onTweakChange = (next) => {
+    setTweaks(next);
+    window.parent && window.parent.postMessage({ type: "__edit_mode_set_keys", edits: next }, "*");
+  };
+
+  // Counts for sidebar
+  const counts = useMemo(() => ({
+    inbox: tickets.length,
+    compliance: LIRE_DATA.compliance.filter(c => c.status !== "scheduled").length,
+  }), [tickets]);
+
+  // Screen + crumbs
+  let content, crumbs;
+  if (nav === "dashboard") {
+    crumbs = ["Portfolio", "Dashboard"];
+    content = (
+      <DashboardScreen
+        onNav={setNav}
+        onOpenTicket={(id) => { setSelectedId(id); setViewKey("priority"); }}
+      />
+    );
+  } else if (nav === "inbox") {
+    const viewLabel = LIRE_DATA.views.find(v => v.key === viewKey)?.label || "Inbox";
+    crumbs = ["Operations", "Inbox", viewLabel];
+    content = (
+      <InboxScreen
+        viewKey={viewKey} onViewChange={setViewKey}
+        tickets={tickets} properties={LIRE_DATA.properties}
+        selectedId={selectedId} onSelect={setSelectedId}
+        timelineMap={timelineMap} onSend={handleSend} onTriage={handleTriage}
+        aiPanelVisible={tweaks.aiPanel} density={tweaks.density}
+        viewsCollapsed={viewsCollapsed}
+        onToggleViewsCollapsed={() => setViewsCollapsed(v => !v)}
+        user={user}
+      />
+    );
+  } else if (nav === "properties") {
+    crumbs = ["Portfolio", "Properties"];
+    content = <PropertiesScreen onNav={setNav}/>;
+  } else if (nav === "channels") {
+    crumbs = ["Communications", "Channels"];
+    content = <ChannelsScreen onOpenInbox={(chKey) => {
+      const mapped = { email: "ch-email", whatsapp: "ch-whatsapp", sms: "ch-sms", zoom: "ch-zoom" }[chKey] || "priority";
+      setViewKey(mapped);
+      setNav("inbox");
+    }}/>;
+  } else if (nav === "concierge") {
+    crumbs = ["Agents", "LIRE Concierge"];
+    content = <ConciergeScreen heroVariant={tweaks.conciergeHero || "A"} onNavLibrary={() => setNav("library")}/>;
+  } else if (nav === "compliance") {
+    crumbs = ["Portfolio Intelligence", "Compliance"];
+    content = <ComplianceScreen/>;
+  } else if (nav === "library") {
+    crumbs = ["Portfolio", "Library"];
+    content = <LibraryScreen onNavConcierge={() => setNav("concierge")}/>;
+  } else {
+    crumbs = ["—", nav];
+    content = (
+      <div style={{ padding: 40, color: "var(--fg-muted)" }}>
+        <Eyebrow>Stub</Eyebrow>
+        <h2 style={{ margin: "6px 0 0", fontFamily: "var(--font-display)", fontWeight: 600, color: "var(--fg)" }}>
+          {nav.charAt(0).toUpperCase() + nav.slice(1)}
+        </h2>
+        <p style={{ marginTop: 4, fontSize: 13 }}>Placeholder in this demo — Inbox, Dashboard, Properties, and Compliance are the wired flows.</p>
       </div>
-    </section>
+    );
+  }
 
-    <section class="section">
-      <div class="container">
-        <div class="section-header">
-          <div>
-            <div class="section-label">Editorial product story</div>
-            <h2>Not another property portal. A category-defining operating system.</h2>
-          </div>
-          <p>
-            Most platforms record what happened after the team does the work. LIRE Help helps do the work itself: receive the issue, understand the property, route the task, brief the operator, generate the next touch, and leave behind cleaner institutional memory after every interaction.
-          </p>
-        </div>
-
-        <div class="editorial-grid">
-          <article class="panel">
-            <div class="panel-copy">
-              <span class="tiny">The old model</span>
-              <h3>Passive software, busy people, missing context.</h3>
-              <p>
-                Industrial property teams still bounce between inboxes, lease folders, vendor lists, and "ask Mike" knowledge. The cost is not just speed. It is fragmented ownership, weak reporting, and too many avoidable escalations.
-              </p>
-              <ul>
-                <li>Tenant messages arrive with no shared operational memory.</li>
-                <li>Vendor and escalation paths live in heads, not systems.</li>
-                <li>Reporting is assembled after the fact instead of emerging from the workflow.</li>
-              </ul>
-            </div>
-            <div class="panel-graphic">
-              <div class="graphic-box"><strong>Inbox</strong><span>Every conversation starts with structure, not chaos.</span></div>
-              <div class="graphic-box"><strong>Agent</strong><span>Action suggestions appear with context already loaded.</span></div>
-              <div class="graphic-box"><strong>Reports</strong><span>Narrative summaries for operators, asset managers, and leadership.</span></div>
-              <div class="graphic-box"><strong>Knowledge</strong><span>The system gets sharper after each incident, renewal, and reply.</span></div>
-            </div>
-          </article>
-
-          <div class="stack">
-            <article class="stack-card dark">
-              <span class="tiny">The LIRE stance</span>
-              <h3>Calm on the surface. Agentic under the hood.</h3>
-              <p>
-                The design language is restrained because the work is serious. What matters is fast comprehension, sharp hierarchy, and software confidence, not startup fluff.
-              </p>
-            </article>
-            <article class="stack-card">
-              <span class="tiny">The operational promise</span>
-              <h3>One system for tenant conversations, site memory, and action.</h3>
-              <p>
-                The result feels less like support software with real estate branding and more like the AI operating layer industrial property teams should have had years ago.
-              </p>
-            </article>
-          </div>
-        </div>
+  // Landing + login short-circuit the app shell entirely
+  if (view === "landing") {
+    return (
+      <div className={`density-${tweaks.density}`} style={{ height: "100vh", width: "100vw", background: "var(--bg)", color: "var(--fg)", overflowY: "auto", overflowX: "hidden" }} data-screen-label="Landing">
+        <LandingScreen
+          heroVariant={tweaks.landingHero || "A"}
+          onLogin={() => setView("login")}
+          onApp={() => {
+            // Walk-the-demo from landing: use a demo account so we don't show "Guest" in the app chrome.
+            if (!user.authed) setUser(makeUser("demo@lire.app"));
+            setView("app");
+          }}
+        />
+        <TweaksPanel open={tweaksOpen} tweaks={tweaks} onChange={onTweakChange} onClose={() => setTweaksOpen(false)}/>
       </div>
-    </section>
-
-    <section class="section" id="products">
-      <div class="container">
-        <div class="section-header">
-          <div>
-            <div class="section-label">Product surfaces</div>
-            <h2>Six products, one operating rhythm.</h2>
-          </div>
-          <p>
-            Each surface plays a clear role in the operating loop, from intake to memory to stakeholder communication. This is the stack industrial teams actually need.
-          </p>
-        </div>
-
-        <div class="capability-grid">
-          <article class="capability">
-            <div class="index">01</div>
-            <h3>Inbox</h3>
-            <p>The live operating queue for tenant issues, maintenance requests, exceptions, and unresolved threads.</p>
-            <ul>
-              <li>Shared triage views</li>
-              <li>Priority and SLA context</li>
-              <li>Clear ownership and handoff</li>
-            </ul>
-          </article>
-          <article class="capability">
-            <div class="index">02</div>
-            <h3>Agent</h3>
-            <p>The action layer that drafts replies, retrieves context, routes vendors, and prepares operator decisions.</p>
-            <ul>
-              <li>Suggested next actions</li>
-              <li>Property-aware drafting</li>
-              <li>Escalation with memory intact</li>
-            </ul>
-          </article>
-          <article class="capability">
-            <div class="index">03</div>
-            <h3>Knowledge</h3>
-            <p>The institutional memory for lease nuance, property rules, approved vendors, emergency procedures, and recurring issues.</p>
-            <ul>
-              <li>Centralized operational memory</li>
-              <li>Portfolio-specific retrieval</li>
-              <li>Better answers over time</li>
-            </ul>
-          </article>
-          <article class="capability">
-            <div class="index">04</div>
-            <h3>Reports</h3>
-            <p>Turn daily activity into portfolio-level narrative, not just dashboards full of unlabeled metrics.</p>
-            <ul>
-              <li>Executive morning briefs</li>
-              <li>Exception and trend reporting</li>
-              <li>SLA and workload visibility</li>
-            </ul>
-          </article>
-          <article class="capability">
-            <div class="index">05</div>
-            <h3>Outbound</h3>
-            <p>Proactive communication to tenants, vendors, and internal stakeholders when the portfolio needs a push, reminder, or update.</p>
-            <ul>
-              <li>Renewal and compliance nudges</li>
-              <li>Status updates at scale</li>
-              <li>Less manual chasing</li>
-            </ul>
-          </article>
-          <article class="capability">
-            <div class="index">06</div>
-            <h3>Contacts</h3>
-            <p>A shared relationship map across tenants, vendors, site teams, and escalation owners, grounded in role and operational history.</p>
-            <ul>
-              <li>Role-based contact context</li>
-              <li>Vendor and tenant recall</li>
-              <li>Cleaner escalation paths</li>
-            </ul>
-          </article>
-        </div>
+    );
+  }
+  if (view === "login") {
+    return (
+      <div className={`density-${tweaks.density}`} style={{ height: "100vh", background: "var(--bg)", color: "var(--fg)", overflow: "hidden" }} data-screen-label="Login">
+        <LoginScreen
+          onApp={signIn}
+          onLanding={() => setView("landing")}
+        />
+        <TweaksPanel open={tweaksOpen} tweaks={tweaks} onChange={onTweakChange} onClose={() => setTweaksOpen(false)}/>
       </div>
-    </section>
+    );
+  }
 
-    <section class="section" id="difference">
-      <div class="container compare-grid">
-        <article class="compare-card">
-          <span class="tiny">Why it feels different</span>
-          <h3>Premium product clarity, rebuilt for industrial operations.</h3>
-          <ul>
-            <li>Sharper navigation, stronger hierarchy, and language that sounds like an actual product.</li>
-            <li>Mondrian-inspired structure brings art direction without borrowing anyone else’s assets.</li>
-            <li>Editorial rhythm and calmer surfaces signal confidence instead of demo-mode noise.</li>
-          </ul>
-        </article>
-        <article class="compare-card">
-          <span class="tiny">What stays true</span>
-          <h3>The core product thesis is still intact.</h3>
-          <ul>
-            <li>The 2 AM operational story remains central because it explains the value fast.</li>
-            <li>The product is still positioned as an active operating layer, not passive software.</li>
-            <li>The marketing site, login, and app still connect through one clear flow.</li>
-          </ul>
-        </article>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="container quote-grid">
-        <article class="quote-card">
-          <span class="tiny">Inbox to action</span>
-          <h3>“The issue lands once. The system does the remembering.”</h3>
-          <p>LIRE Help absorbs the repetitive cognitive load so operators can focus on judgment, relationships, and exceptions.</p>
-          <strong>Operational thesis</strong>
-        </article>
-        <article class="quote-card">
-          <span class="tiny">Portfolio point of view</span>
-          <h3>“This is not support software for industrial teams. It is their operating layer.”</h3>
-          <p>That positioning matters. The category should feel bigger, sharper, and more inevitable than a helpdesk dressed up for real estate.</p>
-          <strong>Brand direction</strong>
-        </article>
-      </div>
-    </section>
-
-    <section class="cta">
-      <div class="container">
-        <div class="cta-wrap">
-          <div>
-            <h2>Give your portfolio a real operating layer.</h2>
-            <p>Give operators one place to receive the issue, understand the context, coordinate the response, and move the portfolio forward.</p>
-          </div>
-          <div class="nav-actions">
-            <a class="button button-secondary" href="mailto:hello@lire-help.com?subject=LIRE%20Help%20demo">Book demo</a>
-            <a class="button button-primary" href="/login">Start free trial</a>
-          </div>
+  return (
+    <div className={`density-${tweaks.density}`} style={{
+      display: "flex", height: "100vh", background: "var(--bg)", color: "var(--fg)",
+      overflow: "hidden",
+    }} data-screen-label={nav.charAt(0).toUpperCase() + nav.slice(1)}>
+      <Sidebar active={nav} onNav={setNav} counts={counts}
+        user={user}
+        collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed(v => !v)}/>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <Topbar crumbs={crumbs}
+          theme={tweaks.theme}
+          onThemeToggle={() => onTweakChange({ ...tweaks, theme: tweaks.theme === "dark" ? "light" : "dark" })}
+          onOpenCmd={() => setCmdOpen(true)}
+          focusMode={focusMode}
+          onToggleFocus={toggleFocus}
+          action={nav === "inbox"
+            ? <Btn variant="primary" icon={<Icon.Plus size={13}/>} size="md" onClick={() => setNewTicketOpen(true)}>New ticket</Btn>
+            : nav === "dashboard" ? null : null}
+        />
+        <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
+          {content}
         </div>
       </div>
-    </section>
-  </main>
 
-  <footer>
-    <div class="container footer-inner">
-      <div>© LIRE Help — the AI operating layer for industrial property teams.</div>
-      <div class="footer-links">
-        <a href="/login">Login</a>
-        <a href="mailto:hello@lire-help.com">Contact</a>
-      </div>
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)}
+        onNavigate={(k) => setNav(k)}
+        onOpenTicket={(id) => { setSelectedId(id); setNav("inbox"); }}
+        onNewTicket={() => setNewTicketOpen(true)}
+        tickets={tickets} properties={LIRE_DATA.properties}/>
+
+      <NewTicketModal
+        open={newTicketOpen}
+        onClose={() => setNewTicketOpen(false)}
+        properties={LIRE_DATA.properties}
+        user={user}
+        onCreate={(ticket, firstMsg) => {
+          setTickets(prev => [ticket, ...prev]);
+          setTimelineMap(prev => ({ ...prev, [ticket.id]: [firstMsg] }));
+          setSelectedId(ticket.id);
+          setViewKey("priority");
+          setNav("inbox");
+          setNewTicketOpen(false);
+        }}
+      />
+
+      <TweaksPanel open={tweaksOpen} tweaks={tweaks} onChange={onTweakChange} onClose={() => setTweaksOpen(false)}/>
     </div>
-  </footer>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#0A0A0A"/>
+  <rect x="60" y="60" width="80" height="80" fill="none" stroke="#FF4D00" stroke-width="8"/>
+  <text x="100" y="115" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="44" fill="#FAFAFA" letter-spacing="-0.04em">L</text>
+</svg>
+</template>
 </body>
 </html>
