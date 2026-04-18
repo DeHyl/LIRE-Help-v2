@@ -15,7 +15,7 @@ import {
   helpConversationTags,
   staffUsers,
 } from "../shared/schema.js";
-import { DEFAULT_INBOX_VIEW_KEY, helpdeskMockData, inboxViewKeys } from "../shared/helpdesk.js";
+import { DEFAULT_INBOX_VIEW_KEY, inboxViewKeys } from "../shared/helpdesk.js";
 import { and, asc, desc, eq } from "drizzle-orm";
 import type {
   Tenant,
@@ -88,13 +88,6 @@ const viewDefinitionsBase: Record<InboxViewKey, Omit<InboxViewDefinition, "count
   renewals: { key: "renewals", label: "Renewal / pricing", section: "saved_views", description: "Commercial coordination" },
 };
 
-const inboxSeedDefinitions = [
-  { slug: "support", name: "Support", description: "Core support queue", channel: "email" },
-  { slug: "escalations", name: "Escalations", description: "Specialist and manager review", channel: "email" },
-  { slug: "billing", name: "Billing", description: "Billing, paperwork, and renewal operations", channel: "email" },
-  { slug: "vip", name: "VIP", description: "Strategic and high-touch conversations", channel: "email" },
-] as const;
-
 const priorityOrder: PriorityLevel[] = ["urgent", "high", "medium", "low"];
 const statusOrder: ConversationStatus[] = ["open", "pending", "waiting_on_customer", "resolved"];
 
@@ -121,6 +114,15 @@ export async function getProperties(tenantId?: string | null): Promise<Property[
 export async function createProperty(data: InsertProperty): Promise<Property> {
   const [row] = await db.insert(properties).values(data).returning();
   return row!;
+}
+
+export async function tenantOwnsProperty(tenantId: string, propertyId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: properties.id })
+    .from(properties)
+    .where(and(eq(properties.tenantId, tenantId), eq(properties.id, propertyId)))
+    .limit(1);
+  return Boolean(row);
 }
 
 export async function updateProperty(id: string, data: Partial<InsertProperty>): Promise<Property | null> {
@@ -167,37 +169,69 @@ export async function upsertAgent(propertyId: string, data: Partial<InsertAgent>
 
 // ─── Platform Knowledge ─────────────────────────────────────────────────────
 
-export async function getPlatformKnowledge(): Promise<PlatformKnowledgeEntry[]> {
-  return db.select().from(platformKnowledge).orderBy(platformKnowledge.sortOrder);
+export async function getPlatformKnowledge(tenantId: string): Promise<PlatformKnowledgeEntry[]> {
+  return db
+    .select()
+    .from(platformKnowledge)
+    .where(eq(platformKnowledge.tenantId, tenantId))
+    .orderBy(platformKnowledge.sortOrder);
 }
 
-export async function createPlatformKnowledge(data: { section: string; title: string; content: string }): Promise<PlatformKnowledgeEntry> {
-  const entries = await getPlatformKnowledge();
+export async function createPlatformKnowledge(
+  tenantId: string,
+  data: { section: string; title: string; content: string },
+): Promise<PlatformKnowledgeEntry> {
+  const entries = await getPlatformKnowledge(tenantId);
   const maxOrder = entries.length > 0 ? Math.max(...entries.map((entry) => entry.sortOrder)) : -1;
-  const [row] = await db.insert(platformKnowledge).values({ ...data, sortOrder: maxOrder + 1 }).returning();
+  const [row] = await db
+    .insert(platformKnowledge)
+    .values({ ...data, tenantId, sortOrder: maxOrder + 1 })
+    .returning();
   return row!;
 }
 
-export async function updatePlatformKnowledge(id: string, data: Partial<{ section: string; title: string; content: string }>): Promise<PlatformKnowledgeEntry | null> {
-  const [row] = await db.update(platformKnowledge).set({ ...data, updatedAt: new Date() }).where(eq(platformKnowledge.id, id)).returning();
+export async function updatePlatformKnowledge(
+  id: string,
+  tenantId: string,
+  data: Partial<{ section: string; title: string; content: string }>,
+): Promise<PlatformKnowledgeEntry | null> {
+  const [row] = await db
+    .update(platformKnowledge)
+    .set({ ...data, updatedAt: new Date() })
+    .where(and(eq(platformKnowledge.id, id), eq(platformKnowledge.tenantId, tenantId)))
+    .returning();
   return row ?? null;
 }
 
-export async function deletePlatformKnowledge(id: string): Promise<void> {
-  await db.delete(platformKnowledge).where(eq(platformKnowledge.id, id));
+export async function deletePlatformKnowledge(id: string, tenantId: string): Promise<boolean> {
+  const rows = await db
+    .delete(platformKnowledge)
+    .where(and(eq(platformKnowledge.id, id), eq(platformKnowledge.tenantId, tenantId)))
+    .returning({ id: platformKnowledge.id });
+  return rows.length > 0;
 }
 
-export async function reorderPlatformKnowledge(id: string, direction: "up" | "down"): Promise<PlatformKnowledgeEntry[]> {
-  const entries = await getPlatformKnowledge();
+export async function reorderPlatformKnowledge(
+  id: string,
+  direction: "up" | "down",
+  tenantId: string,
+): Promise<PlatformKnowledgeEntry[]> {
+  const entries = await getPlatformKnowledge(tenantId);
   const idx = entries.findIndex((entry) => entry.id === id);
   if (idx < 0) return entries;
   const swapIdx = direction === "up" ? idx - 1 : idx + 1;
   if (swapIdx < 0 || swapIdx >= entries.length) return entries;
   const a = entries[idx]!;
   const b = entries[swapIdx]!;
-  await db.update(platformKnowledge).set({ sortOrder: b.sortOrder }).where(eq(platformKnowledge.id, a.id));
-  await db.update(platformKnowledge).set({ sortOrder: a.sortOrder }).where(eq(platformKnowledge.id, b.id));
-  return getPlatformKnowledge();
+  await db
+    .update(platformKnowledge)
+    .set({ sortOrder: b.sortOrder })
+    .where(and(eq(platformKnowledge.id, a.id), eq(platformKnowledge.tenantId, tenantId)));
+  await db
+    .update(platformKnowledge)
+    .set({ sortOrder: a.sortOrder })
+    .where(and(eq(platformKnowledge.id, b.id), eq(platformKnowledge.tenantId, tenantId)));
+  return getPlatformKnowledge(tenantId);
 }
 
 // ─── Platform Sessions ──────────────────────────────────────────────────────
@@ -267,10 +301,6 @@ async function resolveHelpdeskScope(tenantId?: string | null, propertyId?: strin
 function withinScope<T extends { propertyId: string | null }>(items: T[], propertyId: string | null): T[] {
   if (!propertyId) return items;
   return items.filter((item) => item.propertyId === null || item.propertyId === propertyId);
-}
-
-function slugify(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
 function formatAbsolute(date: Date | null | undefined): string {
@@ -397,209 +427,9 @@ function matchesInboxView(conversation: ConversationRow, viewKey: InboxViewKey, 
   }
 }
 
-async function ensureHelpdeskBootstrap(scope: HelpdeskScope): Promise<void> {
-  const existingConversations = await db.select().from(helpConversations).where(eq(helpConversations.tenantId, scope.tenantId)).limit(1);
-  if (existingConversations.length > 0) {
-    await ensureTicketsForTenant(scope.tenantId);
-    return;
-  }
-
-  const tenantStaff = await db.select().from(staffUsers).where(and(eq(staffUsers.tenantId, scope.tenantId), eq(staffUsers.isActive, true))).orderBy(asc(staffUsers.createdAt));
-  const fallbackAssignee = tenantStaff.find((staff) => staff.id === scope.staffId) ?? tenantStaff[0] ?? null;
-
-  const [existingInboxes, existingTags] = await Promise.all([
-    db.select().from(helpInboxes).where(eq(helpInboxes.tenantId, scope.tenantId)),
-    db.select().from(helpTags).where(eq(helpTags.tenantId, scope.tenantId)),
-  ]);
-
-  const inboxBySlug = new Map(existingInboxes.map((inbox) => [inbox.slug, inbox]));
-  for (const seedInbox of inboxSeedDefinitions) {
-    if (!inboxBySlug.has(seedInbox.slug)) {
-      const [created] = await db.insert(helpInboxes).values({
-        tenantId: scope.tenantId,
-        propertyId: scope.propertyId,
-        slug: seedInbox.slug,
-        name: seedInbox.name,
-        description: seedInbox.description,
-        channel: seedInbox.channel,
-        isDefault: seedInbox.slug === "support",
-      }).returning();
-      inboxBySlug.set(seedInbox.slug, created!);
-    }
-  }
-
-  const tagBySlug = new Map(existingTags.map((tag) => [tag.slug, tag]));
-  const customerByExternalId = new Map<string, HelpCustomer>();
-
-  for (const conversation of helpdeskMockData.conversations) {
-    const detail = helpdeskMockData.details[conversation.id];
-    const mockCustomer = conversation.customer;
-
-    let customer = customerByExternalId.get(mockCustomer.id);
-    if (!customer) {
-      const [createdCustomer] = await db.insert(helpCustomers).values({
-        tenantId: scope.tenantId,
-        propertyId: scope.propertyId,
-        externalId: mockCustomer.id,
-        name: mockCustomer.name,
-        email: conversation.requesterEmail,
-        company: mockCustomer.company,
-        tier: mockCustomer.tier,
-        health: mockCustomer.health,
-        lastSeenAt: new Date(),
-      }).returning();
-      customer = createdCustomer!;
-      customerByExternalId.set(mockCustomer.id, customer);
-    }
-
-    const matchedStaff = tenantStaff.find((staff) => staff.name === conversation.assignee) ?? (conversation.assignee ? fallbackAssignee : null);
-    const inboxSlug = slugify(conversation.inboxLabel);
-    const inbox = inboxBySlug.get(inboxSlug) ?? inboxBySlug.get("support");
-
-    const now = Date.now();
-    const createdAt = new Date(now - (helpdeskMockData.conversations.length + 1) * 60 * 60 * 1000);
-    const lastMessageAt = new Date(now - Math.max(5, conversation.messageCount * 12) * 60 * 1000);
-    const firstResponseDueAt = conversation.slaState === "breached"
-      ? new Date(now - 15 * 60 * 1000)
-      : conversation.slaState === "at_risk"
-        ? new Date(now + 20 * 60 * 1000)
-        : new Date(now + 3 * 60 * 60 * 1000);
-
-    const [createdConversation] = await db.insert(helpConversations).values({
-      tenantId: scope.tenantId,
-      propertyId: scope.propertyId,
-      inboxId: inbox?.id ?? null,
-      customerId: customer.id,
-      externalThreadId: conversation.id,
-      subject: conversation.subject,
-      status: conversation.status,
-      priority: conversation.priority,
-      assignmentState: matchedStaff ? "assigned" : conversation.assignmentState,
-      assigneeStaffId: matchedStaff?.id ?? null,
-      channel: "email",
-      preview: conversation.preview,
-      unreadCount: conversation.unread ? 1 : 0,
-      messageCount: conversation.messageCount,
-      firstResponseDueAt,
-      nextResponseDueAt: new Date(firstResponseDueAt.getTime() + 60 * 60 * 1000),
-      resolutionDueAt: new Date(firstResponseDueAt.getTime() + 24 * 60 * 60 * 1000),
-      lastCustomerMessageAt: lastMessageAt,
-      lastMessageAt,
-      closedAt: conversation.status === "resolved" ? new Date(now - 60 * 60 * 1000) : null,
-      createdAt,
-      updatedAt: lastMessageAt,
-    }).returning();
-
-    const [createdTicket] = await db.insert(helpTickets).values({
-      tenantId: scope.tenantId,
-      propertyId: scope.propertyId,
-      conversationId: createdConversation!.id,
-      ticketNumber: conversation.ticket.id,
-      status: conversation.ticket.status,
-      priority: conversation.ticket.priority,
-      team: conversation.ticket.team,
-      assigneeStaffId: matchedStaff?.id ?? null,
-      nextMilestone: conversation.ticket.nextMilestone,
-      resolvedAt: conversation.ticket.status === "resolved" ? new Date(now - 30 * 60 * 1000) : null,
-      createdAt,
-      updatedAt: lastMessageAt,
-    }).returning();
-
-    const tags = new Set<string>([...conversation.tags, ...conversation.ticket.tags]);
-    for (const tagName of tags) {
-      const slug = slugify(tagName);
-      let tag = tagBySlug.get(slug);
-      if (!tag) {
-        const [createdTag] = await db.insert(helpTags).values({
-          tenantId: scope.tenantId,
-          propertyId: scope.propertyId,
-          name: tagName,
-          slug,
-          description: `${tagName} helpdesk tag`,
-        }).returning();
-        tag = createdTag!;
-        tagBySlug.set(slug, tag);
-      }
-      await db.insert(helpConversationTags).values({
-        tenantId: scope.tenantId,
-        propertyId: scope.propertyId,
-        conversationId: createdConversation!.id,
-        tagId: tag.id,
-      });
-    }
-
-    const timeline = detail?.timeline ?? [];
-    for (let idx = 0; idx < timeline.length; idx += 1) {
-      const item = timeline[idx]!;
-      await db.insert(helpMessages).values({
-        tenantId: scope.tenantId,
-        propertyId: scope.propertyId,
-        conversationId: createdConversation!.id,
-        authorStaffId: item.type === "teammate" || item.type === "internal_note" ? matchedStaff?.id ?? fallbackAssignee?.id ?? null : null,
-        messageType: item.type,
-        authorLabel: item.author,
-        body: item.body,
-        metadataJson: {},
-        createdAt: new Date(createdAt.getTime() + (idx + 1) * 20 * 60 * 1000),
-      });
-    }
-
-    if (timeline.length === 0) {
-      await db.insert(helpMessages).values({
-        tenantId: scope.tenantId,
-        propertyId: scope.propertyId,
-        conversationId: createdConversation!.id,
-        messageType: "customer",
-        authorLabel: conversation.requesterName,
-        body: conversation.preview,
-        metadataJson: {},
-        createdAt: createdAt,
-      });
-    }
-
-    await db.update(helpConversations)
-      .set({
-        messageCount: timeline.length > 0 ? timeline.length : 1,
-        preview: timeline[timeline.length - 1]?.body.slice(0, 200) ?? conversation.preview,
-        updatedAt: new Date(),
-      })
-      .where(eq(helpConversations.id, createdConversation!.id));
-
-    if (createdTicket) {
-      void createdTicket;
-    }
-  }
-
-  await ensureTicketsForTenant(scope.tenantId);
-}
-
-async function ensureTicketsForTenant(tenantId: string): Promise<void> {
-  const [allConversations, allTickets] = await Promise.all([
-    db.select().from(helpConversations).where(eq(helpConversations.tenantId, tenantId)),
-    db.select().from(helpTickets).where(eq(helpTickets.tenantId, tenantId)),
-  ]);
-  const ticketByConversationId = new Map(allTickets.map((ticket) => [ticket.conversationId, ticket]));
-  for (const conversation of allConversations) {
-    if (ticketByConversationId.has(conversation.id)) continue;
-    await db.insert(helpTickets).values({
-      tenantId: conversation.tenantId,
-      propertyId: conversation.propertyId,
-      conversationId: conversation.id,
-      ticketNumber: `T-${String(conversation.createdAt.getTime()).slice(-6)}`,
-      status: conversation.status,
-      priority: conversation.priority,
-      team: "Support",
-      assigneeStaffId: conversation.assigneeStaffId,
-      nextMilestone: conversation.firstResponseDueAt ? `First response ${formatRelative(conversation.firstResponseDueAt)}` : "Active conversation",
-    });
-  }
-}
-
 async function loadHelpdeskContext(tenantId?: string | null, propertyId?: string | null, staffId?: string | null): Promise<HelpdeskContext | null> {
   const scope = await resolveHelpdeskScope(tenantId, propertyId, staffId);
   if (!scope) return null;
-
-  await ensureHelpdeskBootstrap(scope);
 
   const [staff, inboxes, customers, tags, conversations, tickets, messages, conversationTags] = await Promise.all([
     db.select().from(staffUsers).where(and(eq(staffUsers.tenantId, scope.tenantId), eq(staffUsers.isActive, true))).orderBy(asc(staffUsers.name)),

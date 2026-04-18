@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { DEFAULT_INBOX_VIEW_KEY, inboxViewKeys } from "../shared/helpdesk.js";
-import { requireStaff } from "./middleware/auth.js";
+import { requireStaff, requireStaffRole } from "./middleware/auth.js";
+
+const HELPDESK_AGENT_ROLES = ["superadmin", "owner", "manager", "staff"] as const;
 import {
   addHelpConversationInternalNote,
   getHelpConversationDetail,
@@ -8,6 +10,7 @@ import {
   getHelpInboxNavigation,
   getHelpdeskDashboardMetrics,
   getPropertiesSummary,
+  tenantOwnsProperty,
   updateHelpConversationAssignee,
   updateHelpConversationPriority,
   updateHelpConversationStatus,
@@ -43,11 +46,23 @@ router.get("/inbox/conversations", async (req, res) => {
     const sess = req.session as any;
     const view = coerceViewKey(req.query["view"]);
     const filterPropertyId = typeof req.query["propertyId"] === "string" && req.query["propertyId"] ? req.query["propertyId"] : null;
-    const conversations = await getHelpInboxConversations(view, sess?.staffTenantId ?? null, sess?.staffPropertyId ?? null, sess?.staffId ?? null, filterPropertyId);
-    res.json({ view, conversations });
+    const tenantId = sess?.staffTenantId ?? null;
+    const sessionPropertyId = sess?.staffPropertyId ?? null;
+
+    if (filterPropertyId) {
+      if (sessionPropertyId && sessionPropertyId !== filterPropertyId) {
+        return res.status(403).json({ message: "Property out of scope" });
+      }
+      if (!tenantId || !(await tenantOwnsProperty(tenantId, filterPropertyId))) {
+        return res.status(403).json({ message: "Unknown property for this tenant" });
+      }
+    }
+
+    const conversations = await getHelpInboxConversations(view, tenantId, sessionPropertyId, sess?.staffId ?? null, filterPropertyId);
+    return res.json({ view, conversations });
   } catch (err) {
     console.error("[helpdesk inbox conversations]", err);
-    res.status(500).json({ message: "Error fetching conversations" });
+    return res.status(500).json({ message: "Error fetching conversations" });
   }
 });
 
@@ -66,7 +81,7 @@ router.get("/inbox/conversations/:conversationId", async (req, res) => {
   }
 });
 
-router.patch("/inbox/conversations/:conversationId/assignee", async (req, res) => {
+router.patch("/inbox/conversations/:conversationId/assignee", requireStaffRole(...HELPDESK_AGENT_ROLES), async (req, res) => {
   try {
     const sess = req.session as any;
     const conversationId = req.params["conversationId"] as string;
@@ -84,7 +99,7 @@ router.patch("/inbox/conversations/:conversationId/assignee", async (req, res) =
   }
 });
 
-router.patch("/inbox/conversations/:conversationId/status", async (req, res) => {
+router.patch("/inbox/conversations/:conversationId/status", requireStaffRole(...HELPDESK_AGENT_ROLES), async (req, res) => {
   try {
     const sess = req.session as any;
     const conversationId = req.params["conversationId"] as string;
@@ -103,7 +118,7 @@ router.patch("/inbox/conversations/:conversationId/status", async (req, res) => 
   }
 });
 
-router.patch("/inbox/conversations/:conversationId/priority", async (req, res) => {
+router.patch("/inbox/conversations/:conversationId/priority", requireStaffRole(...HELPDESK_AGENT_ROLES), async (req, res) => {
   try {
     const sess = req.session as any;
     const conversationId = req.params["conversationId"] as string;
@@ -122,7 +137,7 @@ router.patch("/inbox/conversations/:conversationId/priority", async (req, res) =
   }
 });
 
-router.post("/inbox/conversations/:conversationId/notes", async (req, res) => {
+router.post("/inbox/conversations/:conversationId/notes", requireStaffRole(...HELPDESK_AGENT_ROLES), async (req, res) => {
   try {
     const sess = req.session as any;
     const conversationId = req.params["conversationId"] as string;

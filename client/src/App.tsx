@@ -8,6 +8,8 @@ import PlatformDashboard from "./pages/platform-dashboard";
 import TicketsPage from "./pages/tickets";
 import CustomersPage from "./pages/customers";
 import SettingsPage from "./pages/settings";
+import SettingsInboxesPage from "./pages/settings-inboxes";
+import SettingsWorkflowsPage from "./pages/settings-workflows";
 import LeasingPage from "./pages/leasing";
 import CreditReviewPage from "./pages/credit-review";
 
@@ -61,6 +63,16 @@ function AppRoutes() {
       <Route path="/customers">
         <RequireAuth>
           <CustomersPage />
+        </RequireAuth>
+      </Route>
+      <Route path="/settings/inboxes">
+        <RequireAuth>
+          <SettingsInboxesPage />
+        </RequireAuth>
+      </Route>
+      <Route path="/settings/workflows">
+        <RequireAuth>
+          <SettingsWorkflowsPage />
         </RequireAuth>
       </Route>
       <Route path="/settings">

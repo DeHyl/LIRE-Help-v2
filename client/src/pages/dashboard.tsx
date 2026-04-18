@@ -147,38 +147,16 @@ export default function DashboardPage() {
             })}
           </section>
 
-          <section className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+          <section className="grid gap-6 lg:grid-cols-2">
             <article className="rounded-card border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <Eyebrow>Status mix</Eyebrow>
-                  <Heading level={2} className="mt-1">Current ticket distribution</Heading>
+                  <Eyebrow>Triage by team</Eyebrow>
+                  <Heading level={2} className="mt-1">Where work is waiting</Heading>
                 </div>
                 <Link href="/inbox/all"><a className="text-sm font-medium text-blue-600 dark:text-blue-400">Open inbox</a></Link>
               </div>
               <div className="mt-5 space-y-3">
-                {metricsQuery.data.byStatus.map((entry) => {
-                  const totalTickets = Math.max(1, metricsQuery.data.byStatus.reduce((sum, item) => sum + item.count, 0));
-                  const width = Math.max(8, (entry.count / totalTickets) * 100);
-
-                  return (
-                    <div key={entry.status} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/60">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-medium capitalize text-slate-900 dark:text-slate-100">{entry.status.replaceAll("_", " ")}</p>
-                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{entry.count}</p>
-                      </div>
-                      <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-800">
-                        <div className="h-2 rounded-full bg-slate-900 dark:bg-slate-100" style={{ width: `${width}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </article>
-
-            <article className="rounded-card border border-slate-200 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
-              <p className="eyebrow">By inbox / team</p>
-              <div className="mt-4 space-y-3">
                 {metricsQuery.data.byInbox.map((inbox) => (
                   <div key={inbox.inboxLabel} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/60">
                     <div className="flex items-center justify-between gap-3">
@@ -193,6 +171,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             </article>
+
           </section>
 
           <section className="grid gap-6 lg:grid-cols-2">
