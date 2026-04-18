@@ -1,0 +1,238 @@
+/* =============================================================
+   DeHyl Design System — Colors & Type
+   Built, not decorated.
+   ============================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ---------- Color · Neutrals ---------- */
+  --bg:           #FAFAFA;     /* page background (light) */
+  --surface:      #FFFFFF;     /* cards, inputs */
+  --surface-2:    #F5F5F5;     /* subtle recessed surface */
+  --fg:           #111111;     /* primary text */
+  --fg-muted:     #737373;     /* secondary text */
+  --fg-subtle:    #A3A3A3;     /* captions, metadata */
+  --border:       #E5E5E5;     /* default 1px border */
+  --border-strong:#111111;     /* 2px emphasis divider */
+
+  /* ---------- Color · Accent (use sparingly) ---------- */
+  --accent:       #FF4D00;     /* safety orange */
+  --accent-hover: #E54400;
+  --accent-press: #CC3D00;
+  --accent-ink:   #FFFFFF;     /* text on accent */
+
+  /* ---------- Color · Semantic ---------- */
+  --success:      #00875A;
+  --warning:      #F59E0B;
+  --error:        #DC2626;
+
+  /* ---------- Color · Dark mode tokens (opt-in via .dark) ---------- */
+  --dark-bg:        #0A0A0A;
+  --dark-surface:   #141414;
+  --dark-surface-2: #1C1C1C;
+  --dark-fg:        #F5F5F5;
+  --dark-fg-muted:  #737373;
+  --dark-border:    #262626;
+
+  /* ---------- Type · Families ---------- */
+  --font-display: 'Inter Tight', system-ui, -apple-system, sans-serif;
+  --font-body:    'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ---------- Type · Scale ---------- */
+  --fs-eyebrow: 11px;
+  --fs-caption: 12px;
+  --fs-small:   13px;
+  --fs-body:    14px;
+  --fs-body-lg: 16px;
+  --fs-h5:      18px;
+  --fs-h4:      22px;
+  --fs-h3:      28px;
+  --fs-h2:      36px;
+  --fs-h1:      48px;
+  --fs-display: 64px;
+
+  /* ---------- Type · Line heights ---------- */
+  --lh-tight: 1.05;
+  --lh-snug:  1.25;
+  --lh-body:  1.6;
+
+  /* ---------- Type · Tracking ---------- */
+  --tr-tight:   -0.02em;
+  --tr-normal:   0;
+  --tr-wide:     0.08em;     /* for eyebrows + status */
+
+  /* ---------- Spacing (4px grid) ---------- */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  24px;
+  --sp-6:  32px;
+  --sp-7:  48px;
+  --sp-8:  64px;
+  --sp-9:  96px;
+
+  /* ---------- Radii (square-ish) ---------- */
+  --r-0: 0;
+  --r-1: 2px;
+  --r-2: 4px;
+  --r-3: 6px;
+
+  /* ---------- Borders ---------- */
+  --bw-1: 1px;
+  --bw-2: 2px;
+
+  /* ---------- Elevation (used sparingly) ---------- */
+  --shadow-pop:  0 2px 8px rgba(0,0,0,0.08);
+  --shadow-menu: 0 4px 16px rgba(0,0,0,0.10);
+
+  /* ---------- Motion ---------- */
+  --ease:      cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast:  120ms;
+  --dur-base:  160ms;
+  --dur-slow:  220ms;
+}
+
+.dark {
+  --bg:            var(--dark-bg);
+  --surface:       var(--dark-surface);
+  --surface-2:     var(--dark-surface-2);
+  --fg:            var(--dark-fg);
+  --fg-muted:      var(--dark-fg-muted);
+  --fg-subtle:     #525252;
+  --border:        var(--dark-border);
+  --border-strong: var(--dark-fg);
+}
+
+/* =============================================================
+   Semantic text styles
+   Apply by class OR use the elements directly (unscoped).
+   ============================================================= */
+
+.ds-display,
+h1.ds {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-display);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tr-tight);
+  color: var(--fg);
+}
+
+.ds-h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-h1);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tr-tight);
+  color: var(--fg);
+}
+
+.ds-h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-h2);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tr-tight);
+  color: var(--fg);
+}
+
+.ds-h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-h3);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tr-tight);
+  color: var(--fg);
+}
+
+.ds-h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-h4);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tr-tight);
+  color: var(--fg);
+}
+
+.ds-h5 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-h5);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tr-tight);
+  color: var(--fg);
+}
+
+.ds-body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--fg);
+}
+
+.ds-body-lg {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--fs-body-lg);
+  line-height: var(--lh-body);
+  color: var(--fg);
+}
+
+.ds-small {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  color: var(--fg-muted);
+}
+
+.ds-caption {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--fs-caption);
+  line-height: 1.4;
+  color: var(--fg-muted);
+}
+
+.ds-eyebrow {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--fs-eyebrow);
+  line-height: 1;
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.ds-mono,
+code.ds,
+.ds-num {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: var(--fs-body);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+
+.ds-num-lg {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--fs-h3);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tr-tight);
+  color: var(--fg);
+}
+
+/* =============================================================
+   Focus ring (never hide)
+   ============================================================= */
+.ds-focus:focus-visible,
+button.ds:focus-visible,
+input.ds:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
