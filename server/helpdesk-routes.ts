@@ -10,6 +10,7 @@ import {
   getHelpInboxNavigation,
   getHelpdeskDashboardMetrics,
   getPropertiesSummary,
+  tenantOwnsProperty,
   updateHelpConversationAssignee,
   updateHelpConversationPriority,
   updateHelpConversationStatus,
@@ -45,11 +46,23 @@ router.get("/inbox/conversations", async (req, res) => {
     const sess = req.session as any;
     const view = coerceViewKey(req.query["view"]);
     const filterPropertyId = typeof req.query["propertyId"] === "string" && req.query["propertyId"] ? req.query["propertyId"] : null;
-    const conversations = await getHelpInboxConversations(view, sess?.staffTenantId ?? null, sess?.staffPropertyId ?? null, sess?.staffId ?? null, filterPropertyId);
-    res.json({ view, conversations });
+    const tenantId = sess?.staffTenantId ?? null;
+    const sessionPropertyId = sess?.staffPropertyId ?? null;
+
+    if (filterPropertyId) {
+      if (sessionPropertyId && sessionPropertyId !== filterPropertyId) {
+        return res.status(403).json({ message: "Property out of scope" });
+      }
+      if (!tenantId || !(await tenantOwnsProperty(tenantId, filterPropertyId))) {
+        return res.status(403).json({ message: "Unknown property for this tenant" });
+      }
+    }
+
+    const conversations = await getHelpInboxConversations(view, tenantId, sessionPropertyId, sess?.staffId ?? null, filterPropertyId);
+    return res.json({ view, conversations });
   } catch (err) {
     console.error("[helpdesk inbox conversations]", err);
-    res.status(500).json({ message: "Error fetching conversations" });
+    return res.status(500).json({ message: "Error fetching conversations" });
   }
 });
 

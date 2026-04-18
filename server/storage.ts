@@ -116,6 +116,15 @@ export async function createProperty(data: InsertProperty): Promise<Property> {
   return row!;
 }
 
+export async function tenantOwnsProperty(tenantId: string, propertyId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: properties.id })
+    .from(properties)
+    .where(and(eq(properties.tenantId, tenantId), eq(properties.id, propertyId)))
+    .limit(1);
+  return Boolean(row);
+}
+
 export async function updateProperty(id: string, data: Partial<InsertProperty>): Promise<Property | null> {
   const [row] = await db.update(properties).set({ ...data, updatedAt: new Date() }).where(eq(properties.id, id)).returning();
   return row ?? null;
