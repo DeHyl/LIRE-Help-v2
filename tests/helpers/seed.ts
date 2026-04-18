@@ -1,4 +1,3 @@
-import { sql } from "drizzle-orm";
 import { db, pgClient } from "../../server/db.js";
 import {
   tenants,
@@ -22,13 +21,14 @@ export async function truncateAll() {
   // migrated test DB during Phase 1 (staff_sessions is declared in Task 5).
   // Why: the alternative is strict ordering of Tasks 1/2/5; we prefer a
   // tolerant truncate so iteration order in the plan stays flexible.
-  const existing = await db.execute<{ tablename: string }>(sql.raw(
-    `SELECT tablename FROM pg_tables WHERE schemaname = 'public'`,
-  ));
-  const present = new Set(existing.map((row: any) => row.tablename));
+  const rows = await pgClient<Array<{ tablename: string }>>`
+    SELECT tablename FROM pg_tables WHERE schemaname = 'public'
+  `;
+  const present = new Set(rows.map((r) => r.tablename));
   for (const table of TABLES) {
     if (!present.has(table)) continue;
-    await db.execute(sql.raw(`TRUNCATE TABLE "${table}" CASCADE`));
+    // TABLES is a compile-time allowlist — unsafe() is intentional.
+    await pgClient.unsafe(`TRUNCATE TABLE "${table}" CASCADE`);
   }
 }
 
