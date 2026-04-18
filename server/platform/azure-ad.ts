@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { eq } from "drizzle-orm";
 import { db } from "../db.js";
 import { staffUsers, tenants } from "../../shared/schema.js";
+import { verifyIdToken, type IdTokenClaims } from "./azure-ad-jwks.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Azure AD OIDC auth provider.
@@ -106,36 +107,7 @@ async function exchangeCodeForTokens(
   return (await res.json()) as TokenResponse;
 }
 
-type IdTokenClaims = {
-  oid: string;
-  email?: string;
-  preferred_username?: string;
-  name?: string;
-  tid: string;
-  iss: string;
-  aud: string;
-  exp: number;
-};
-
-function decodeIdToken(idToken: string): IdTokenClaims {
-  const parts = idToken.split(".");
-  if (parts.length !== 3) throw new Error("Malformed id_token");
-  const payload = Buffer.from(parts[1]!.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
-  return JSON.parse(payload) as IdTokenClaims;
-}
-
-// NOTE: full signature verification against the Microsoft JWKS is required
-// before production use. For the pilot we validate issuer + audience + exp
-// and rely on TLS + the token-exchange receipt to bind the id_token to this
-// request. Wire up a JWKS verifier before the first real Berkeley login.
-function validateIdTokenClaims(claims: IdTokenClaims, cfg: AzureAdConfig) {
-  const expectedAudience = cfg.clientId;
-  const expectedIssuer = `https://login.microsoftonline.com/${cfg.tenantId}/v2.0`;
-  if (claims.aud !== expectedAudience) throw new Error("id_token audience mismatch");
-  if (claims.iss !== expectedIssuer) throw new Error("id_token issuer mismatch");
-  if (claims.exp * 1000 < Date.now()) throw new Error("id_token expired");
-  if (claims.tid !== cfg.tenantId) throw new Error("id_token tenant id mismatch");
-}
+// id_token claims are validated via JWKS signature verification in azure-ad-jwks.ts.
 
 // ─── Step 3: Upsert staff user + set session ────────────────────────────────
 
@@ -180,8 +152,10 @@ export async function handleAzureAdCallback(req: Request, res: Response, cfg: Az
 
   try {
     const tokens = await exchangeCodeForTokens(cfg, code, pkce.codeVerifier);
-    const claims = decodeIdToken(tokens.id_token);
-    validateIdTokenClaims(claims, cfg);
+    const claims = await verifyIdToken(tokens.id_token, {
+      tenantId: cfg.tenantId,
+      clientId: cfg.clientId,
+    });
 
     const user = await upsertStaffFromClaims(cfg, claims);
     const { setStaffSession } = await import("../helpers/authHelpers.js");
