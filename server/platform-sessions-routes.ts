@@ -1,19 +1,27 @@
 import { Router } from "express";
-import { requireAdmin } from "./middleware/auth.js";
+import { z } from "zod";
+import { requireAdmin, requireStaff } from "./middleware/auth.js";
 import { upsertPlatformSession, getPlatformSessions, getPlatformSession, updatePlatformSessionTags } from "./storage.js";
+import { platformSessionsWriteLimiter } from "./helpers/rate-limiters.js";
 
 const router = Router();
 
-router.post("/", async (req, res) => {
+const upsertBody = z.object({
+  sessionId: z.string().min(1).max(128),
+  messages: z.array(z.object({
+    role: z.enum(["user", "assistant"]),
+    content: z.string().max(8000),
+  })).max(200),
+  escalated: z.boolean().optional(),
+});
+
+router.post("/", requireStaff, platformSessionsWriteLimiter, async (req, res) => {
   try {
-    const { sessionId, messages, escalated = false } = req.body as {
-      sessionId: string;
-      messages: { role: string; content: string }[];
-      escalated?: boolean;
-    };
-    if (!sessionId || !Array.isArray(messages))
-      return res.status(400).json({ message: "sessionId and messages required" });
-    const session = await upsertPlatformSession(sessionId, messages, escalated);
+    const parsed = upsertBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid payload", issues: parsed.error.issues });
+    }
+    const session = await upsertPlatformSession(parsed.data.sessionId, parsed.data.messages, parsed.data.escalated ?? false);
     res.json({ ok: true, id: session.id });
   } catch (err) {
     console.error("[platform-sessions POST]", err);
