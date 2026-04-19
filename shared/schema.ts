@@ -54,7 +54,30 @@ export const properties = pgTable("properties", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertPropertySchema = createInsertSchema(properties).omit({ id: true, createdAt: true, updatedAt: true });
+// B14: branding JSON is rendered into inline CSS/HTML attributes on tenant login
+// pages, so clamp every field shape before persisting. primaryColor/secondaryColor
+// must be strict 6-digit hex; URLs validated; fontFamily bounded; unknown keys rejected.
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+const urlOrNull = z.string().url().refine((u) => {
+  try {
+    const parsed = new URL(u);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}, { message: "Only http(s) URLs are allowed" }).nullable();
+const brandingJsonSchema = z.object({
+  primaryColor: hexColor.optional(),
+  secondaryColor: hexColor.optional(),
+  fontFamily: z.string().max(64).optional(),
+  darkMode: z.boolean().optional(),
+  logoUrl: urlOrNull.optional(),
+  faviconUrl: urlOrNull.optional(),
+}).strict();
+
+export const insertPropertySchema = createInsertSchema(properties, {
+  brandingJson: brandingJsonSchema.optional(),
+}).omit({ id: true, createdAt: true, updatedAt: true });
 export type Property = typeof properties.$inferSelect;
 export type InsertProperty = z.infer<typeof insertPropertySchema>;
 
