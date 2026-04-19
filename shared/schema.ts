@@ -1,5 +1,5 @@
 import {
-  pgTable, text, integer, boolean, timestamp, varchar, jsonb, doublePrecision,
+  pgTable, text, integer, boolean, timestamp, varchar, jsonb, doublePrecision, uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -96,6 +96,27 @@ export const staffUsers = pgTable("staff_users", {
 });
 
 export type StaffUser = typeof staffUsers.$inferSelect;
+
+// ─── Staff Identities (SSO providers) ────────────────────────────────────────
+//
+// One row per linked OIDC identity. A single staff user can be linked to
+// multiple providers (Google + Azure). The unique index on
+// (provider, provider_sub) is what binds an incoming id_token to a local user.
+
+export const staffIdentities = pgTable("staff_identities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  staffUserId: varchar("staff_user_id").references(() => staffUsers.id, { onDelete: "cascade" }).notNull(),
+  provider: text("provider").notNull(),
+  providerSub: text("provider_sub").notNull(),
+  email: text("email").notNull(),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  providerSubUq: uniqueIndex("staff_identities_provider_sub_uq").on(table.provider, table.providerSub),
+}));
+
+export type StaffIdentity = typeof staffIdentities.$inferSelect;
 
 // ─── Platform Knowledge Base ─────────────────────────────────────────────────
 

@@ -4,29 +4,41 @@ import { staffUsers } from "../shared/schema.js";
 import { eq } from "drizzle-orm";
 import { verifyPassword, setStaffSession, safeUser } from "./helpers/authHelpers.js";
 import { requireStaff } from "./middleware/auth.js";
-import { buildAuthorizationUrl, handleAzureAdCallback, readAzureAdConfig } from "./platform/azure-ad.js";
+import { buildAuthorizationUrl, handleOidcCallback } from "./platform/oidc.js";
+import { readOidcProvider, readOidcProviders } from "./platform/oidc-providers.js";
 
 const router = Router();
 
-router.get("/azure/status", (_req, res) => {
-  const cfg = readAzureAdConfig();
-  res.json({ enabled: cfg !== null });
-});
-
-router.get("/azure/login", (req, res) => {
-  const cfg = readAzureAdConfig();
-  if (!cfg) return res.status(404).json({ message: "Azure AD SSO not configured" });
-  const url = buildAuthorizationUrl(cfg, req);
-  req.session.save((err) => {
-    if (err) return res.status(500).json({ message: "Session error" });
-    return res.redirect(url);
+router.get("/oidc/providers", (_req, res) => {
+  const providers = readOidcProviders();
+  res.json({
+    providers: Object.values(providers).map((p) => ({ id: p.id, label: p.label })),
   });
 });
 
-router.get("/azure/callback", async (req, res) => {
-  const cfg = readAzureAdConfig();
-  if (!cfg) return res.status(404).send("Azure AD SSO not configured");
-  await handleAzureAdCallback(req, res, cfg);
+router.get("/oidc/:provider/start", (req, res) => {
+  const cfg = readOidcProvider(req.params.provider);
+  if (!cfg) {
+    res.status(404).json({ message: "Provider not configured" });
+    return;
+  }
+  const url = buildAuthorizationUrl(cfg, req);
+  req.session.save((err) => {
+    if (err) {
+      res.status(500).json({ message: "Session error" });
+      return;
+    }
+    res.redirect(url);
+  });
+});
+
+router.get("/oidc/:provider/callback", async (req, res) => {
+  const cfg = readOidcProvider(req.params.provider);
+  if (!cfg) {
+    res.status(404).send("Provider not configured");
+    return;
+  }
+  await handleOidcCallback(req, res, cfg);
 });
 
 router.post("/login", async (req, res) => {
@@ -66,7 +78,6 @@ router.post("/login", async (req, res) => {
 
 router.post("/logout", (req, res) => {
   req.session.destroy(() => {
-    const isDev = process.env.NODE_ENV !== "production";
     res.clearCookie("connect.sid", {
       domain: process.env.COOKIE_DOMAIN || undefined,
     });
