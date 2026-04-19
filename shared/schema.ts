@@ -536,3 +536,40 @@ export const tokenUsage = pgTable("token_usage", {
 
 export type TokenUsage = typeof tokenUsage.$inferSelect;
 export type InsertTokenUsage = typeof tokenUsage.$inferInsert;
+
+// ─── Channel Configs ────────────────────────────────────────────────────────
+//
+// Per-tenant configuration for each communication channel (email, phone,
+// whatsapp, switch, slack, messenger). One row per (tenant, channelType).
+// Provider-specific fields live in configJson so each channel can evolve its
+// schema independently without migrations. Secrets (API keys, tokens) are
+// stored encrypted at rest by the application layer before being persisted —
+// the column itself just holds opaque JSON.
+
+export const CHANNEL_TYPES = ["email", "phone", "whatsapp", "switch", "slack", "messenger"] as const;
+export type ChannelType = typeof CHANNEL_TYPES[number];
+
+export interface EmailChannelConfig {
+  provider: "sendgrid" | "smtp" | "ses" | "none";
+  fromAddress: string | null;
+  fromName: string | null;
+  replyToAddress: string | null;
+  forwardingAddress: string | null;
+  signatureHtml: string | null;
+}
+
+export const channelConfigs = pgTable("channel_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  channelType: text("channel_type").notNull(),
+  enabled: boolean("enabled").notNull().default(false),
+  configJson: jsonb("config_json").$type<Record<string, unknown>>().notNull().default({}),
+  updatedByStaffId: varchar("updated_by_staff_id").references(() => staffUsers.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  tenantChannelUq: uniqueIndex("channel_configs_tenant_channel_uq").on(table.tenantId, table.channelType),
+}));
+
+export type ChannelConfig = typeof channelConfigs.$inferSelect;
+export type InsertChannelConfig = typeof channelConfigs.$inferInsert;
