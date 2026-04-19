@@ -185,12 +185,7 @@ router.post(
       .limit(1);
     if (!lessee) return res.status(404).json({ message: "Lessee not found" });
 
-    let buffer: Buffer;
-    try {
-      buffer = Buffer.from(base64, "base64");
-    } catch {
-      return res.status(400).json({ message: "Invalid base64 payload" });
-    }
+    const buffer = Buffer.from(base64, "base64");
     if (buffer.length === 0 || buffer.length > MAX_UPLOAD_BYTES) {
       return res.status(413).json({ message: "Payload too small or too large" });
     }
@@ -206,6 +201,14 @@ router.post(
       ))
       .limit(1);
     if (existing) {
+      await appendArchive({
+        tenantId,
+        subjectType: "credit_document",
+        subjectId: existing.id,
+        actorStaffId: staffId ?? null,
+        eventType: "document.upload_deduped",
+        payload: { id: existing.id, sha256: existing.sha256 },
+      });
       return res.status(200).json({ document: existing, dedup: true });
     }
 

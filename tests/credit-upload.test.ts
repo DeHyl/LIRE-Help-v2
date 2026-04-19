@@ -40,6 +40,20 @@ describe("credit document upload (B7)", () => {
     }).expect(413);
   });
 
+  it("rejects handler-level oversize (26MB > 25MB cap, below 35MB parser limit)", async () => {
+    const t = await seedTenant("a");
+    await seedStaff({ email: "o@x.com", role: "owner", tenantId: t.id });
+    const agent = await agentFor("o@x.com");
+    const created = await agent.post("/api/pilots/credit/lessees").send({ legalName: "ACME" }).expect(201);
+    const mid = Buffer.alloc(26 * 1024 * 1024, 0x20); // 26MB raw → ~34.7MB base64 (under 35MB parser, over 25MB handler)
+    await agent.post("/api/pilots/credit/documents/upload").send({
+      lesseeId: created.body.lessee.id,
+      filename: "midsize.pdf",
+      mimeType: "application/pdf",
+      base64: mid.toString("base64"),
+    }).expect(413);
+  });
+
   it("dedupes identical uploads", async () => {
     const t = await seedTenant("a");
     await seedStaff({ email: "o@x.com", role: "owner", tenantId: t.id });
