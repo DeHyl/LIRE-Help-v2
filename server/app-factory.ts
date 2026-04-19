@@ -52,8 +52,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<express.E
         ? {
             directives: {
               defaultSrc: ["'self'"],
-              scriptSrc: ["'self'"],
-              styleSrc: ["'self'", "'unsafe-inline'"],
+              // The inline hash covers client/index.html's theme-flash-prevention
+              // script. It must run synchronously before first paint, so we pin
+              // its sha256 instead of relaxing script-src to 'unsafe-inline'.
+              // Update this hash if that script changes.
+              scriptSrc: ["'self'", "'sha256-senfA6QUSKWGXgWnC4Hp397yZT0zRyGT/+6hp6rI0r0='"],
+              styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+              fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
               imgSrc: ["'self'", "data:", "https://*.lire-help.com", "https://*.blob.core.windows.net"],
               connectSrc: ["'self'", "https://*.lire-help.com"],
               frameAncestors: ["'none'"],
