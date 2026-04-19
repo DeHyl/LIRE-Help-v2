@@ -30,7 +30,7 @@ const primaryItems: readonly NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/inbox", label: "Inbox", icon: InboxIcon, badgeKey: "openConversations" },
   { href: "/settings/inboxes", label: "Channels", icon: Hash },
-  { href: "/concierge", label: "Concierge", icon: Sparkles, disabled: true },
+  { href: "/concierge", label: "Concierge", icon: Sparkles },
   { href: "/customers", label: "Properties", icon: Building2 },
   { href: "/credit-review", label: "Compliance", icon: ShieldCheck, badgeKey: "slaAtRisk" },
   { href: "/vendors", label: "Vendors", icon: Wrench, disabled: true },
