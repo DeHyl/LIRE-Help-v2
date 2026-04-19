@@ -40,12 +40,31 @@ const navigationCommands: CommandItem[] = [
   { id: "go-platform", label: "Platform admin", href: "/platform-dashboard", icon: Shield, group: "Navigation", keywords: "admin platform internal" },
 ];
 
+const FOCUS_STORAGE_KEY = "workspace:focus";
+
+function readFocusPreference(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(FOCUS_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export function WorkspaceShell({ title, children, eyebrow = "Operations", actions }: WorkspaceShellProps) {
   const { logout } = useAuth();
   const { mode, resolved, setMode, toggle } = useTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
-  const [focusMode, setFocusMode] = useState(false);
+  const [focusMode, setFocusMode] = useState<boolean>(() => readFocusPreference());
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(FOCUS_STORAGE_KEY, focusMode ? "1" : "0");
+    } catch {
+      // ignore quota / privacy-mode errors
+    }
+  }, [focusMode]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -59,6 +78,9 @@ export function WorkspaceShell({ title, children, eyebrow = "Operations", action
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setPaletteOpen((open) => !open);
+      } else if ((event.metaKey || event.ctrlKey) && event.key === ".") {
+        event.preventDefault();
+        setFocusMode((value) => !value);
       } else if (event.key === "/" && !isTyping) {
         event.preventDefault();
         setPaletteOpen(true);
@@ -113,7 +135,7 @@ export function WorkspaceShell({ title, children, eyebrow = "Operations", action
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-bg text-fg">
-      <AppSidebar />
+      {focusMode ? null : <AppSidebar />}
 
       <Sheet open={navOpen} onClose={() => setNavOpen(false)} ariaLabel="Workspace navigation">
         <AppSidebar embedded onNavigate={() => setNavOpen(false)} />
@@ -166,8 +188,9 @@ export function WorkspaceShell({ title, children, eyebrow = "Operations", action
 
           <button
             type="button"
-            onClick={() => setFocusMode((v) => !v)}
-            title="Focus mode — collapse side panels"
+            onClick={() => setFocusMode((value) => !value)}
+            aria-pressed={focusMode}
+            title={focusMode ? "Exit focus mode (⌘.)" : "Enter focus mode (⌘.)"}
             className={[
               "hidden h-7 items-center gap-1.5 rounded-sm px-2 font-body text-[12px] font-medium transition-colors ease-ds duration-fast sm:inline-flex",
               focusMode
@@ -176,7 +199,7 @@ export function WorkspaceShell({ title, children, eyebrow = "Operations", action
             ].join(" ")}
           >
             <Maximize className="h-3 w-3" />
-            {focusMode ? "Exit focus" : "Focus"}
+            <span>{focusMode ? "Exit focus" : "Focus"}</span>
           </button>
           <button
             type="button"

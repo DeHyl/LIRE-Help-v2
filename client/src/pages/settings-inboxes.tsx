@@ -1,10 +1,10 @@
 import { Inbox as InboxIcon } from "lucide-react";
-import { WorkspaceShell } from "../components/workspace/workspace-shell";
+import { SettingsLayout } from "../components/workspace/settings-layout";
 import { Card } from "../components/ui";
 
 export default function SettingsInboxesPage() {
   return (
-    <WorkspaceShell title="Inboxes" eyebrow="Operations / Settings">
+    <SettingsLayout title="Inboxes" eyebrow="Operations / Settings">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <Card padding="md">
           <div className="flex items-center gap-2.5">
@@ -34,6 +34,6 @@ export default function SettingsInboxesPage() {
           </p>
         </Card>
       </div>
-    </WorkspaceShell>
+    </SettingsLayout>
   );
 }
