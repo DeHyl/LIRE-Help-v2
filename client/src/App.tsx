@@ -7,6 +7,7 @@ import LandingPage from "./pages/landing";
 import LoginPage from "./pages/login";
 import PlatformDashboard from "./pages/platform-dashboard";
 import CustomersPage from "./pages/customers";
+import ConciergePage from "./pages/concierge";
 import SettingsPage from "./pages/settings";
 import SettingsGeneralPage from "./pages/settings-general";
 import SettingsInboxesPage from "./pages/settings-inboxes";
@@ -199,6 +200,11 @@ function AppRoutes() {
       <Route path="/customers">
         <RequireAuth>
           <CustomersPage />
+        </RequireAuth>
+      </Route>
+      <Route path="/concierge">
+        <RequireAuth>
+          <ConciergePage />
         </RequireAuth>
       </Route>
 
