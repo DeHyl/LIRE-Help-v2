@@ -12,7 +12,7 @@ const sections: readonly SubnavItem[] = [
   { label: "Workspace", href: "/settings/workspace" },
   { label: "Subscription", href: "/settings/subscription" },
   { label: "Channels", href: "/settings/channels" },
-  { label: "Inbox", href: "/settings/inbox" },
+  { label: "Inbox", href: "/settings/inboxes" },
   { label: "AI & Automation", href: "/settings/ai-automation" },
   { label: "Integrations", href: "/settings/integrations" },
   { label: "Data", href: "/settings/data" },

@@ -4,7 +4,6 @@ import {
   BarChart3,
   Clock,
   CreditCard,
-  Gift,
   Hash,
   Languages,
   LayoutGrid,
@@ -27,7 +26,6 @@ type CardEntry = {
   description: string;
   href: string;
   warning?: boolean;
-  disabled?: boolean;
 };
 
 type Group = {
@@ -69,13 +67,6 @@ const groups: readonly Group[] = [
         description: "Configure all security settings for your workspace and data.",
         href: "/settings/workspace/security",
         warning: true,
-      },
-      {
-        icon: Gift,
-        title: "Referrals",
-        description: "Get $100 in LIRE credit when you refer a business.",
-        href: "/settings/workspace/referrals",
-        disabled: true,
       },
       {
         icon: Languages,
@@ -147,42 +138,31 @@ const groups: readonly Group[] = [
 
 function SettingsTile({ entry }: { entry: CardEntry }) {
   const Icon = entry.icon;
-  const body = (
-    <Card
-      padding="md"
-      interactive={!entry.disabled}
-      className={entry.disabled ? "pointer-events-none opacity-50" : "h-full"}
-    >
-      <div className="flex items-start gap-2.5">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xs bg-surface-2 text-fg-muted">
-          <Icon className="h-4 w-4" />
-        </span>
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="font-body text-[13px] font-semibold text-fg">{entry.title}</p>
-            {entry.warning ? (
-              <AlertTriangle className="h-3.5 w-3.5 text-warning" aria-label="Attention required" />
-            ) : null}
-          </div>
-          <p className="mt-1 font-body text-[12.5px] leading-[1.55] text-fg-muted">
-            {entry.description}
-          </p>
-        </div>
-      </div>
-    </Card>
-  );
-
-  if (entry.disabled) {
-    return (
-      <div aria-disabled="true" className="h-full">
-        {body}
-      </div>
-    );
-  }
-
   return (
     <Link href={entry.href}>
-      <a className="block h-full">{body}</a>
+      <a className="block h-full">
+        <Card padding="md" interactive className="h-full">
+          <div className="flex items-start gap-2.5">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xs bg-surface-2 text-fg-muted">
+              <Icon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <p className="font-body text-[13px] font-semibold text-fg">{entry.title}</p>
+                {entry.warning ? (
+                  <AlertTriangle
+                    className="h-3.5 w-3.5 text-warning"
+                    aria-label="Attention required"
+                  />
+                ) : null}
+              </div>
+              <p className="mt-1 font-body text-[12.5px] leading-[1.55] text-fg-muted">
+                {entry.description}
+              </p>
+            </div>
+          </div>
+        </Card>
+      </a>
     </Link>
   );
 }

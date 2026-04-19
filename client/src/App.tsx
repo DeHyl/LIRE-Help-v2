@@ -58,12 +58,6 @@ const settingsSectionStubs: readonly SettingsStub[] = [
       "Inbound and outbound surfaces — Messenger, Email, Phone, WhatsApp, Switch, Slack. Each channel gets its own setup flow and inbox mapping.",
   },
   {
-    path: "/settings/inbox",
-    title: "Inbox",
-    description:
-      "Inbox-wide preferences like views, rules, macros, and default assignment. Team inbox definitions live under Inboxes; workflow automations live under Workflows.",
-  },
-  {
     path: "/settings/ai-automation",
     title: "AI & Automation",
     description:
