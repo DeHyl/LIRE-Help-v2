@@ -43,10 +43,27 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<express.E
 
   // ─── Security & parsing ───────────────────────────────────────────────────
 
+  // B9: strict Content-Security-Policy in production. Kept off in dev so the Vite
+  // middleware + HMR websockets + inline scripts keep working. Once Azure Blob is
+  // in play, add the storage account hostname to img-src / connect-src via env.
   app.use(
     helmet({
-      contentSecurityPolicy: false,
+      contentSecurityPolicy: isProd
+        ? {
+            directives: {
+              defaultSrc: ["'self'"],
+              scriptSrc: ["'self'"],
+              styleSrc: ["'self'", "'unsafe-inline'"],
+              imgSrc: ["'self'", "data:", "https://*.lire-help.com", "https://*.blob.core.windows.net"],
+              connectSrc: ["'self'", "https://*.lire-help.com"],
+              frameAncestors: ["'none'"],
+              objectSrc: ["'none'"],
+              baseUri: ["'self'"],
+            },
+          }
+        : false,
       crossOriginEmbedderPolicy: false,
+      referrerPolicy: { policy: "strict-origin-when-cross-origin" },
     }),
   );
   // H15: bound the global JSON parser. Matches express's historical default but
