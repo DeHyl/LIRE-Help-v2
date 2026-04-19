@@ -5,6 +5,7 @@
 import express, { type Request, type Response } from "express";
 import helmet from "helmet";
 import path from "path";
+import { z } from "zod";
 import { isCorsOriginAllowed, parseAllowedHosts } from "./platform/cors.js";
 import { redact } from "./helpers/redact.js";
 
@@ -377,17 +378,25 @@ RESTRICTIONS:
 
   // ─── Rate limiting (chat endpoint) ─────────────────────────────────────────
 
-  const { default: rateLimit } = await import("express-rate-limit");
-  const chatLimiter = rateLimit({ windowMs: 60_000, max: 15, message: { error: "Too many requests. Please wait a moment." } });
+  const { chatPerMinuteLimiter, chatPerDayLimiter } = await import("./helpers/rate-limiters.js");
+
+  // B1: strict input shape. Anonymous callers hit this endpoint, so we cap
+  // content length, message count, and reject spoofed system-role entries.
+  const chatBodySchema = z.object({
+    messages: z.array(z.object({
+      role: z.enum(["user", "assistant"]),
+      content: z.string().min(1).max(4000),
+    })).min(1).max(20),
+    sessionId: z.string().max(128).optional(),
+  });
 
   // ─── Chat endpoint (concierge) ────────────────────────────────────────────
 
-  app.post("/api/chat", chatLimiter, async (req: Request, res: Response) => {
+  app.post("/api/chat", chatPerMinuteLimiter, chatPerDayLimiter, async (req: Request, res: Response) => {
     try {
-      const { messages, sessionId } = req.body;
-
-      if (!Array.isArray(messages) || messages.length === 0) {
-        return res.status(400).json({ error: "messages required" });
+      const parsed = chatBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "invalid_payload", issues: parsed.error.issues });
       }
 
       if (!ANTHROPIC_API_KEY) {
@@ -397,7 +406,7 @@ RESTRICTIONS:
         });
       }
 
-      const trimmed = messages.slice(-20);
+      const trimmed = parsed.data.messages.slice(-20);
       const tenantId = await resolveTenantIdFromHost(req);
 
       const upstream = await fetch("https://api.anthropic.com/v1/messages", {
@@ -426,17 +435,21 @@ RESTRICTIONS:
         usage?: { input_tokens: number; output_tokens: number };
       };
       const raw = data.content?.[0]?.text ?? "";
-      const escalate = raw.includes("[ESCALATE]");
-      const response = raw.replace("[ESCALATE]", "").trim();
+      // Only honor [ESCALATE] when it appears at the trailing edge of the reply.
+      // The user can trivially include the literal token in their message history
+      // and nudge the model to echo it mid-reply; that shouldn't poison metrics.
+      const trailing = raw.trim().endsWith("[ESCALATE]");
+      const response = raw.replace(/\[ESCALATE\]\s*$/, "").trim();
 
-      if (sessionId) {
-        console.log(`[${sessionId}] ${trimmed.length + 1} msgs, escalated: ${escalate}`);
+      if (parsed.data.sessionId) {
+        console.log(`[${parsed.data.sessionId}] ${trimmed.length + 1} msgs, escalated: ${trailing}`);
       }
 
       // Non-blocking token logging
       if (data.usage) {
         logTokenUsage({
-          sessionId: sessionId ?? null,
+          tenantId: tenantId ?? null,
+          sessionId: parsed.data.sessionId ?? null,
           operation: "concierge_chat",
           model: "claude-haiku-4-5-20251001",
           inputTokens: data.usage.input_tokens,
@@ -444,11 +457,10 @@ RESTRICTIONS:
         });
       }
 
-      res.json({ response, escalate });
+      res.json({ response, escalate: trailing });
     } catch (err: unknown) {
-      console.error("Chat error:", err);
-      const message = err instanceof Error ? err.message : "Unknown error";
-      res.status(500).json({ error: message });
+      console.error("[chat]", err instanceof Error ? err.message : err);
+      res.status(500).json({ error: "chat_failed" });
     }
   });
 
