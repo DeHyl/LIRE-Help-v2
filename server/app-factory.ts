@@ -47,7 +47,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<express.E
       crossOriginEmbedderPolicy: false,
     }),
   );
-  app.use(express.json());
+  app.use((req, res, next) => {
+    if (req.path === "/api/pilots/credit/documents/upload") return next();
+    return express.json()(req, res, next);
+  });
 
   // ─── CORS ─────────────────────────────────────────────────────────────────
 
@@ -462,16 +465,14 @@ RESTRICTIONS:
   // Skipped entirely in tests so we don't need a build artifact and we don't
   // pull in the Vite dev middleware.
 
-  // Root redirects to /login. The SPA handles / vs /dashboard from there.
-  // The old design prototype at public/index.html is no longer served — it was
-  // a static demo and has been superseded by the authenticated SPA.
-  app.get("/", (_req, res) => res.redirect("/login"));
+  // The SPA owns "/" (marketing landing) as well as the authenticated app
+  // surfaces. public/index.html (the old static design prototype) is no longer
+  // served; static middleware runs with { index: false } so it can't shadow
+  // the SPA at "/".
 
   if (isTest) {
     // no-op
   } else if (isDev) {
-    // { index: false } prevents public/index.html from being served on "/",
-    // which would otherwise shadow the redirect above.
     app.use(express.static(path.join(root, "public"), { index: false }));
     const { setupVite } = await import("./vite.js");
     await setupVite(app);
@@ -491,6 +492,7 @@ RESTRICTIONS:
     ] as const;
 
     const isSpaRoute = (pathname: string) => (
+      pathname === "/" ||
       spaRoutePrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
     );
 

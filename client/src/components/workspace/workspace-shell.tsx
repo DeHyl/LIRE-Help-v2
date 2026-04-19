@@ -3,10 +3,10 @@ import {
   Bell,
   ChevronRight,
   Command,
-  Focus,
   Inbox as InboxIcon,
   LayoutDashboard,
   LogOut,
+  Maximize,
   Menu,
   Monitor,
   Moon,
@@ -51,7 +51,7 @@ function readFocusPreference(): boolean {
   }
 }
 
-export function WorkspaceShell({ title, children, eyebrow = "Workspace", actions }: WorkspaceShellProps) {
+export function WorkspaceShell({ title, children, eyebrow = "Operations", actions }: WorkspaceShellProps) {
   const { logout } = useAuth();
   const { mode, resolved, setMode, toggle } = useTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -192,16 +192,15 @@ export function WorkspaceShell({ title, children, eyebrow = "Workspace", actions
             aria-pressed={focusMode}
             title={focusMode ? "Exit focus mode (⌘.)" : "Enter focus mode (⌘.)"}
             className={[
-              "hidden items-center gap-1.5 rounded-sm border px-2.5 py-1.5 font-body text-[12px] font-medium transition-colors ease-ds duration-fast sm:inline-flex",
+              "hidden h-7 items-center gap-1.5 rounded-sm px-2 font-body text-[12px] font-medium transition-colors ease-ds duration-fast sm:inline-flex",
               focusMode
-                ? "border-fg bg-fg text-surface hover:bg-fg-muted"
-                : "border-border bg-surface-2 text-fg-muted hover:bg-surface hover:text-fg",
+                ? "bg-fg text-surface hover:opacity-90"
+                : "text-fg-muted hover:bg-surface-2 hover:text-fg",
             ].join(" ")}
           >
-            <Focus className="h-3.5 w-3.5" />
+            <Maximize className="h-3 w-3" />
             <span>{focusMode ? "Exit focus" : "Focus"}</span>
           </button>
-
           <button
             type="button"
             onClick={toggle}

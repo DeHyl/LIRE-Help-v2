@@ -169,7 +169,7 @@ function SettingsTile({ entry }: { entry: CardEntry }) {
 
 export default function SettingsPage() {
   return (
-    <SettingsLayout title="Home" eyebrow="Workspace / Settings">
+    <SettingsLayout title="Home" eyebrow="Operations / Settings">
       <div className="space-y-7">
         {groups.map((group) => (
           <section key={group.title}>
