@@ -47,9 +47,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<express.E
       crossOriginEmbedderPolicy: false,
     }),
   );
+  // H15: bound the global JSON parser. Matches express's historical default but
+  // is stated explicitly so a future dep bump can't silently widen it. Reuse a
+  // single parser instance to avoid per-request allocation.
+  const defaultJsonParser = express.json({ limit: "100kb" });
   app.use((req, res, next) => {
+    // B7 carve-out: the credit upload route mounts its own 35MB parser.
     if (req.path === "/api/pilots/credit/documents/upload") return next();
-    return express.json()(req, res, next);
+    return defaultJsonParser(req, res, next);
   });
 
   // ─── CORS ─────────────────────────────────────────────────────────────────
