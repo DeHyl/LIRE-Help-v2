@@ -191,6 +191,45 @@ export const platformKnowledge = pgTable("platform_knowledge", {
 
 export type PlatformKnowledgeEntry = typeof platformKnowledge.$inferSelect;
 
+// ─── KB Documents ────────────────────────────────────────────────────────────
+// Uploaded files (leases, drawings, policy PDFs) that supplement
+// platformKnowledge. Phase 1 stores bytes on a Railway volume and extracted
+// plaintext in extractedText; Phase 2 will add chunked embeddings for
+// retrieval via lookup_knowledge. propertyId nullable so a file can apply
+// operator-wide (e.g. standard lease template) or to one building.
+
+export const kbDocumentKinds = [
+  "lease",
+  "drawing",
+  "policy",
+  "sow",
+  "other",
+] as const;
+export type KbDocumentKind = (typeof kbDocumentKinds)[number];
+
+export const kbDocumentExtractStatuses = ["pending", "done", "failed"] as const;
+export type KbDocumentExtractStatus = (typeof kbDocumentExtractStatuses)[number];
+
+export const kbDocuments = pgTable("kb_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id).notNull(),
+  propertyId: varchar("property_id"),
+  kind: text("kind").notNull(),
+  title: text("title").notNull(),
+  originalName: text("original_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  storagePath: text("storage_path").notNull(),
+  extractStatus: text("extract_status").default("pending").notNull(),
+  extractError: text("extract_error"),
+  extractedText: text("extracted_text"),
+  uploadedByStaffId: varchar("uploaded_by_staff_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type KbDocument = typeof kbDocuments.$inferSelect;
+
 // ─── Platform Sessions ───────────────────────────────────────────────────────
 
 export const platformSessions = pgTable("platform_sessions", {
