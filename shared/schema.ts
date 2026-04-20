@@ -4,6 +4,9 @@ import {
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { STAFF_ROLES, type StaffRole } from "./roles.js";
+
+export { STAFF_ROLES, type StaffRole } from "./roles.js";
 
 // ─── Tenants ─────────────────────────────────────────────────────────────────
 
@@ -151,9 +154,39 @@ export const staffUsers = pgTable("staff_users", {
 
 export type StaffUser = typeof staffUsers.$inferSelect;
 
-export const STAFF_ROLES = ["superadmin", "owner", "manager", "staff", "readonly", "compliance"] as const;
-export type StaffRole = typeof STAFF_ROLES[number];
+// SUBORDINATE_ROLES is what an `owner` is allowed to assign through the legacy
+// /api/staff create/patch routes. It predates the tier-based invite model in
+// shared/roles.ts and is preserved for those routes' backwards-compat behavior.
+// New code should prefer canInviteRole() / invitableRolesFor() from shared/roles.
 export const SUBORDINATE_ROLES = ["manager", "staff", "readonly"] as const satisfies readonly StaffRole[];
+
+// ─── Invitations ─────────────────────────────────────────────────────────────
+//
+// Invite-only signup. An admin (per shared/roles.ts tier rules) creates an
+// invitation, the invitee opens /signup?token=… and trades the token for an
+// account with the role baked in. Tokens are single-use, time-bound, and
+// scoped to a tenant (and optionally a property) at creation time so the
+// recipient cannot escalate their own scope.
+
+export const invitations = pgTable("invitations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  role: text("role").notNull(),
+  tenantId: varchar("tenant_id").references(() => tenants.id),
+  propertyId: varchar("property_id").references(() => properties.id),
+  token: text("token").notNull(),
+  invitedByStaffId: varchar("invited_by_staff_id").references(() => staffUsers.id, { onDelete: "set null" }),
+  expiresAt: timestamp("expires_at").notNull(),
+  claimedAt: timestamp("claimed_at"),
+  claimedByStaffId: varchar("claimed_by_staff_id").references(() => staffUsers.id, { onDelete: "set null" }),
+  revokedAt: timestamp("revoked_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  tokenUq: uniqueIndex("invitations_token_uq").on(table.token),
+  tenantEmailIdx: index("invitations_tenant_email_idx").on(table.tenantId, table.email),
+}));
+
+export type Invitation = typeof invitations.$inferSelect;
 
 // ─── Staff Identities (SSO providers) ────────────────────────────────────────
 //

@@ -5,6 +5,8 @@ import DashboardPage from "./pages/dashboard";
 import InboxPage from "./pages/inbox";
 import LandingPage from "./pages/landing";
 import LoginPage from "./pages/login";
+import SignupPage from "./pages/signup";
+import SettingsTeammatesPage from "./pages/settings-teammates";
 import PlatformDashboard from "./pages/platform-dashboard";
 import CustomersPage from "./pages/customers";
 import ConciergePage from "./pages/concierge";
@@ -176,6 +178,12 @@ function AppRoutes() {
         {user ? <Redirect to="/dashboard" /> : <LoginPage />}
       </Route>
 
+      {/* Signup is invitation-only — the page itself validates the ?token= */}
+      {/* on mount, so it must remain reachable without an existing session. */}
+      <Route path="/signup">
+        <SignupPage />
+      </Route>
+
       {/* Phase 1 workspace route group: shell-backed operator surfaces */}
       <Route path="/dashboard">
         <RequireAuth>
@@ -230,6 +238,11 @@ function AppRoutes() {
       <Route path="/settings/ai-automation">
         <RequireAuth>
           <SettingsAiAutomationPage />
+        </RequireAuth>
+      </Route>
+      <Route path="/settings/workspace/teammates">
+        <RequireAuth>
+          <SettingsTeammatesPage />
         </RequireAuth>
       </Route>
       {settingsTileStubs.map((stub) => (
