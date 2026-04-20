@@ -29,8 +29,8 @@ export default function InboxPage({ viewId }: InboxPageProps) {
   const filterPropertyId = search.get("propertyId") ?? null;
 
   const navigationQuery = useQuery({
-    queryKey: ["helpdesk", "inbox", "navigation"],
-    queryFn: helpdeskApi.getNavigation,
+    queryKey: ["helpdesk", "inbox", "navigation", filterPropertyId ?? ""],
+    queryFn: () => helpdeskApi.getNavigation(filterPropertyId),
   });
 
   const selectedView = navigationQuery.data?.views.some((view) => view.key === routeView)
@@ -65,7 +65,7 @@ export default function InboxPage({ viewId }: InboxPageProps) {
         selectedConversationId={selectedConversationId}
         filterPropertyId={filterPropertyId}
         onSelectView={(view) => updateRoute(view, selectedConversationId)}
-        onSelectConversation={(conversationId) => updateRoute(selectedView, conversationId)}
+        onSelectConversation={(conversationId) => updateRoute(selectedView, conversationId ?? null)}
       />
     </WorkspaceShell>
   );

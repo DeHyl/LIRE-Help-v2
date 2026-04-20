@@ -214,7 +214,9 @@ export const helpTags = pgTable("help_tags", {
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  tenantPropertySlugUq: uniqueIndex("help_tags_tenant_property_slug_uq").on(table.tenantId, table.propertyId, table.slug),
+}));
 
 export const helpConversations = pgTable("help_conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -228,6 +230,13 @@ export const helpConversations = pgTable("help_conversations", {
   priority: text("priority").notNull().default("medium"),
   assignmentState: text("assignment_state").notNull().default("unassigned"),
   assigneeStaffId: varchar("assignee_staff_id").references(() => staffUsers.id),
+  visibilityStatus: text("visibility_status").notNull().default("active"),
+  previousVisibilityStatus: text("previous_visibility_status"),
+  visibilityChangedAt: timestamp("visibility_changed_at"),
+  visibilityChangedByStaffId: varchar("visibility_changed_by_staff_id").references(() => staffUsers.id),
+  deletedAt: timestamp("deleted_at"),
+  deletedByStaffId: varchar("deleted_by_staff_id").references(() => staffUsers.id),
+  deleteReason: text("delete_reason"),
   channel: text("channel").notNull().default("email"),
   preview: text("preview"),
   unreadCount: integer("unread_count").default(0).notNull(),
@@ -238,6 +247,7 @@ export const helpConversations = pgTable("help_conversations", {
   lastCustomerMessageAt: timestamp("last_customer_message_at"),
   lastMessageAt: timestamp("last_message_at").defaultNow().notNull(),
   snoozedUntil: timestamp("snoozed_until"),
+  snoozedByStaffId: varchar("snoozed_by_staff_id").references(() => staffUsers.id),
   closedAt: timestamp("closed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -282,7 +292,9 @@ export const helpConversationTags = pgTable("help_conversation_tags", {
   conversationId: varchar("conversation_id").references(() => helpConversations.id).notNull(),
   tagId: varchar("tag_id").references(() => helpTags.id).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  conversationTagUq: uniqueIndex("help_conversation_tags_conversation_tag_uq").on(table.conversationId, table.tagId),
+}));
 
 export type HelpInbox = typeof helpInboxes.$inferSelect;
 export type HelpCustomer = typeof helpCustomers.$inferSelect;

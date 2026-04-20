@@ -5,6 +5,10 @@ export const inboxViewKeys = [
   "awaiting_reply",
   "sla_at_risk",
   "closed_recently",
+  "snoozed",
+  "archived",
+  "spam",
+  "trash",
   "support",
   "escalations",
   "billing",
@@ -22,6 +26,7 @@ export type ConversationStatus = "open" | "pending" | "waiting_on_customer" | "r
 export type PriorityLevel = "low" | "medium" | "high" | "urgent";
 export type SlaState = "healthy" | "at_risk" | "breached";
 export type AssignmentState = "assigned" | "unassigned" | "team";
+export type ConversationVisibilityStatus = "active" | "archived" | "spam" | "deleted";
 export type TimelineItemType = "customer" | "teammate" | "internal_note" | "system";
 export type ComposerMode = "reply" | "note";
 
@@ -71,6 +76,9 @@ export interface ConversationRow {
   preview: string;
   status: ConversationStatus;
   priority: PriorityLevel;
+  visibilityStatus: ConversationVisibilityStatus;
+  snoozedUntil: string | null;
+  snoozedUntilLabel: string | null;
   unread: boolean;
   assignmentState: AssignmentState;
   assignee: string | null;
@@ -104,16 +112,35 @@ export interface HelpdeskAssigneeOption {
   role: string;
 }
 
+export interface HelpdeskTagOption {
+  id: string;
+  name: string;
+  slug: string;
+  color: string | null;
+}
+
 export interface ConversationDetail {
   conversationId: string;
   title: string;
   summary: string;
   composerMode: ComposerMode;
+  mailbox: {
+    visibilityStatus: ConversationVisibilityStatus;
+    snoozedUntil: string | null;
+    snoozedUntilLabel: string | null;
+    deletedAtLabel: string | null;
+    deleteReason: string | null;
+    canReply: boolean;
+    canArchive: boolean;
+    canSpam: boolean;
+    canSoftDelete: boolean;
+  };
   ticket: TicketSummary;
   customer: CustomerSummary;
   suggestedActions: SuggestionItem[];
   timeline: ConversationTimelineItem[];
   availableAssignees?: HelpdeskAssigneeOption[];
+  availableTags?: HelpdeskTagOption[];
 }
 
 export interface HelpdeskStatusCount {
@@ -165,6 +192,10 @@ export const helpdeskMockData: InboxScaffoldData = {
     { key: "awaiting_reply", label: "Awaiting reply", section: "default_views", count: 15, description: "Customer needs a response" },
     { key: "sla_at_risk", label: "SLA at risk", section: "default_views", count: 4, description: "Response or resolution target is slipping" },
     { key: "closed_recently", label: "Closed recently", section: "default_views", count: 7, description: "Recently resolved conversations" },
+    { key: "snoozed", label: "Snoozed", section: "saved_views", count: 5, description: "Active conversations waiting for their snooze window to end" },
+    { key: "archived", label: "Archived", section: "saved_views", count: 3, description: "Conversations removed from active queues but retained for review" },
+    { key: "spam", label: "Spam", section: "saved_views", count: 2, description: "Messages marked as spam and hidden from active queues" },
+    { key: "trash", label: "Trash", section: "saved_views", count: 1, description: "Soft-deleted conversations recoverable by admins" },
     { key: "support", label: "Support", section: "team_inboxes", count: 19, description: "Core support queue" },
     { key: "escalations", label: "Escalations", section: "team_inboxes", count: 5, description: "Manager or specialist attention" },
     { key: "billing", label: "Billing", section: "team_inboxes", count: 6, description: "Invoices, credits, renewals" },
@@ -191,6 +222,9 @@ export const helpdeskMockData: InboxScaffoldData = {
       preview: "Procurement needs the revised pricing grid and confirmation of implementation support before they sign.",
       status: "open",
       priority: "urgent",
+      visibilityStatus: "active",
+      snoozedUntil: null,
+      snoozedUntilLabel: null,
       unread: true,
       assignmentState: "assigned",
       assignee: "Avery Kim",
@@ -229,6 +263,9 @@ export const helpdeskMockData: InboxScaffoldData = {
       preview: "Their dispatcher attached logs showing duplicate availability windows after last night's deploy.",
       status: "pending",
       priority: "high",
+      visibilityStatus: "active",
+      snoozedUntil: null,
+      snoozedUntilLabel: null,
       unread: false,
       assignmentState: "team",
       assignee: "Platform Support",
@@ -267,6 +304,9 @@ export const helpdeskMockData: InboxScaffoldData = {
       preview: "AP is missing the latest invoice PDF and vendor paperwork for the new billing entity.",
       status: "waiting_on_customer",
       priority: "medium",
+      visibilityStatus: "active",
+      snoozedUntil: null,
+      snoozedUntilLabel: null,
       unread: true,
       assignmentState: "unassigned",
       assignee: null,
@@ -305,6 +345,9 @@ export const helpdeskMockData: InboxScaffoldData = {
       preview: "Operations wants a documented after-hours process for loading emergencies and manager escalation.",
       status: "open",
       priority: "low",
+      visibilityStatus: "active",
+      snoozedUntil: null,
+      snoozedUntilLabel: null,
       unread: false,
       assignmentState: "assigned",
       assignee: "Jordan Lee",
@@ -340,6 +383,17 @@ export const helpdeskMockData: InboxScaffoldData = {
       title: "Renewal pricing needs approval before Friday",
       summary: "Strategic renewal is blocked on revised pricing, implementation assurances, and executive approval timing.",
       composerMode: "reply",
+      mailbox: {
+        visibilityStatus: "active",
+        snoozedUntil: null,
+        snoozedUntilLabel: null,
+        deletedAtLabel: null,
+        deleteReason: null,
+        canReply: true,
+        canArchive: true,
+        canSpam: true,
+        canSoftDelete: true,
+      },
       ticket: {
         id: "T-3021",
         status: "open",
@@ -374,6 +428,17 @@ export const helpdeskMockData: InboxScaffoldData = {
       title: "Dock scheduling API returning duplicate slots",
       summary: "Customer supplied logs pointing to a post-deploy regression impacting scheduling integrations.",
       composerMode: "note",
+      mailbox: {
+        visibilityStatus: "active",
+        snoozedUntil: null,
+        snoozedUntilLabel: null,
+        deletedAtLabel: null,
+        deleteReason: null,
+        canReply: true,
+        canArchive: true,
+        canSpam: true,
+        canSoftDelete: true,
+      },
       ticket: {
         id: "T-3018",
         status: "pending",
@@ -406,6 +471,17 @@ export const helpdeskMockData: InboxScaffoldData = {
       title: "Need W-9 and invoice copy for April billing",
       summary: "Billing ops request waiting for customer confirmation on entity name after documents are sent.",
       composerMode: "reply",
+      mailbox: {
+        visibilityStatus: "active",
+        snoozedUntil: null,
+        snoozedUntilLabel: null,
+        deletedAtLabel: null,
+        deleteReason: null,
+        canReply: true,
+        canArchive: true,
+        canSpam: true,
+        canSoftDelete: true,
+      },
       ticket: {
         id: "T-3013",
         status: "waiting_on_customer",
@@ -436,6 +512,17 @@ export const helpdeskMockData: InboxScaffoldData = {
       title: "How should we route after-hours escalation calls?",
       summary: "Process clarification request that should turn into a documented macro or playbook later.",
       composerMode: "reply",
+      mailbox: {
+        visibilityStatus: "active",
+        snoozedUntil: null,
+        snoozedUntilLabel: null,
+        deletedAtLabel: null,
+        deleteReason: null,
+        canReply: true,
+        canArchive: true,
+        canSpam: true,
+        canSoftDelete: true,
+      },
       ticket: {
         id: "T-3009",
         status: "open",

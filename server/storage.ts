@@ -41,9 +41,11 @@ import type {
   ConversationDetail,
   ConversationRow,
   ConversationStatus,
+  ConversationVisibilityStatus,
   ConversationTimelineItem,
   HelpdeskAssigneeOption,
   HelpdeskDashboardMetrics,
+  HelpdeskTagOption,
   HelpdeskInboxMetric,
   HelpdeskRecentActivityItem,
   InboxViewDefinition,
@@ -79,6 +81,10 @@ const viewDefinitionsBase: Record<InboxViewKey, Omit<InboxViewDefinition, "count
   awaiting_reply: { key: "awaiting_reply", label: "Awaiting reply", section: "default_views", description: "Customer needs a response" },
   sla_at_risk: { key: "sla_at_risk", label: "SLA at risk", section: "default_views", description: "Response or resolution target is slipping" },
   closed_recently: { key: "closed_recently", label: "Closed recently", section: "default_views", description: "Recently resolved conversations" },
+  snoozed: { key: "snoozed", label: "Snoozed", section: "saved_views", description: "Active conversations waiting for their snooze window to end" },
+  archived: { key: "archived", label: "Archived", section: "saved_views", description: "Conversations removed from active queues but retained for review" },
+  spam: { key: "spam", label: "Spam", section: "saved_views", description: "Messages marked as spam and hidden from active queues" },
+  trash: { key: "trash", label: "Trash", section: "saved_views", description: "Soft-deleted conversations recoverable by admins" },
   support: { key: "support", label: "Support", section: "team_inboxes", description: "Core support queue" },
   escalations: { key: "escalations", label: "Escalations", section: "team_inboxes", description: "Manager or specialist attention" },
   billing: { key: "billing", label: "Billing", section: "team_inboxes", description: "Invoices, credits, renewals" },
@@ -395,35 +401,77 @@ function deriveSuggestedActions(row: ConversationRow): SuggestionItem[] {
   return items.slice(0, 3);
 }
 
+function isFutureSnooze(snoozedUntil: Date | null | undefined): boolean {
+  return snoozedUntil instanceof Date && snoozedUntil.getTime() > Date.now();
+}
+
+function isOperationalConversation(row: ConversationRow): boolean {
+  return row.visibilityStatus === "active" && !row.snoozedUntil;
+}
+
+function buildMailboxFlags(visibilityStatus: ConversationVisibilityStatus) {
+  const isDeleted = visibilityStatus === "deleted";
+  return {
+    canReply: !isDeleted,
+    canArchive: !isDeleted,
+    canSpam: !isDeleted,
+    canSoftDelete: true,
+  };
+}
+
+function canMutateMailboxVisibility(conversation: HelpConversation): boolean {
+  return conversation.visibilityStatus !== "deleted";
+}
+
 function matchesInboxView(conversation: ConversationRow, viewKey: InboxViewKey, currentStaffName?: string | null): boolean {
   switch (viewKey) {
+    case "snoozed":
+      return conversation.visibilityStatus === "active" && Boolean(conversation.snoozedUntil);
+    case "archived":
+      return conversation.visibilityStatus === "archived";
+    case "spam":
+      return conversation.visibilityStatus === "spam";
+    case "trash":
+      return conversation.visibilityStatus === "deleted";
     case "assigned":
+      if (!isOperationalConversation(conversation)) return false;
       return currentStaffName ? conversation.assignee === currentStaffName : conversation.assignmentState === "assigned";
     case "unassigned":
+      if (!isOperationalConversation(conversation)) return false;
       return conversation.assignmentState === "unassigned";
     case "awaiting_reply":
+      if (!isOperationalConversation(conversation)) return false;
       return conversation.status === "open" || conversation.status === "pending";
     case "sla_at_risk":
+      if (!isOperationalConversation(conversation)) return false;
       return conversation.slaState === "at_risk" || conversation.slaState === "breached";
     case "closed_recently":
+      if (!isOperationalConversation(conversation)) return false;
       return conversation.status === "resolved";
     case "support":
+      if (!isOperationalConversation(conversation)) return false;
       return conversation.inboxLabel === "Support";
     case "escalations":
+      if (!isOperationalConversation(conversation)) return false;
       return conversation.inboxLabel === "Escalations";
     case "billing":
+      if (!isOperationalConversation(conversation)) return false;
       return conversation.inboxLabel === "Billing";
     case "vip":
+      if (!isOperationalConversation(conversation)) return false;
       return conversation.inboxLabel === "VIP";
     case "high_priority":
+      if (!isOperationalConversation(conversation)) return false;
       return conversation.priority === "high" || conversation.priority === "urgent";
     case "bugs":
+      if (!isOperationalConversation(conversation)) return false;
       return conversation.tags.includes("bug");
     case "renewals":
+      if (!isOperationalConversation(conversation)) return false;
       return conversation.tags.includes("renewal") || conversation.tags.includes("pricing");
     case "all":
     default:
-      return true;
+      return isOperationalConversation(conversation);
   }
 }
 
@@ -459,6 +507,15 @@ function buildAssigneeOptions(context: HelpdeskContext): HelpdeskAssigneeOption[
   return context.staff.map((member) => ({ id: member.id, name: member.name, role: member.role }));
 }
 
+function buildTagOptions(context: HelpdeskContext): HelpdeskTagOption[] {
+  return context.tags.map((tag) => ({
+    id: tag.id,
+    name: tag.name,
+    slug: tag.slug,
+    color: tag.color ?? null,
+  }));
+}
+
 function buildConversationRows(context: HelpdeskContext): ConversationRow[] {
   const inboxById = new Map(context.inboxes.map((inbox) => [inbox.id, inbox]));
   const customerById = new Map(context.customers.map((customer) => [customer.id, customer]));
@@ -484,6 +541,9 @@ function buildConversationRows(context: HelpdeskContext): ConversationRow[] {
     const tags = [...new Set(tagsByConversationId.get(conversation.id) ?? [])].sort();
     const status = (ticket?.status ?? conversation.status) as ConversationStatus;
     const priority = (ticket?.priority ?? conversation.priority) as PriorityLevel;
+    const visibilityStatus = (conversation.visibilityStatus ?? "active") as ConversationVisibilityStatus;
+    const snoozedDate = isFutureSnooze(conversation.snoozedUntil) ? conversation.snoozedUntil : null;
+    const snoozedUntil = snoozedDate ? snoozedDate.toISOString() : null;
     const slaState = deriveSlaState(conversation);
     const assignmentState: AssignmentState = assigneeStaff
       ? "assigned"
@@ -501,6 +561,9 @@ function buildConversationRows(context: HelpdeskContext): ConversationRow[] {
       preview: conversation.preview ?? "No preview available.",
       status,
       priority,
+      visibilityStatus,
+      snoozedUntil,
+      snoozedUntilLabel: snoozedUntil ? formatAbsolute(conversation.snoozedUntil) : null,
       unread: conversation.unreadCount > 0,
       assignmentState,
       assignee: assigneeStaff?.name ?? null,
@@ -546,10 +609,13 @@ export async function getHelpInboxNavigation(
   tenantId?: string | null,
   propertyId?: string | null,
   staffId?: string | null,
+  filterPropertyId?: string | null,
 ): Promise<InboxViewDefinition[]> {
   const context = await loadHelpdeskContext(tenantId, propertyId, staffId);
   if (!context) return [];
-  const rows = buildConversationRows(context);
+  const rows = filterPropertyId
+    ? buildConversationRows(context).filter((row) => row.propertyId === filterPropertyId)
+    : buildConversationRows(context);
   const currentStaffName = context.staff.find((staff) => staff.id === context.scope.staffId)?.name ?? null;
 
   return inboxViewKeys.map((viewKey) => ({
@@ -599,17 +665,50 @@ export async function getHelpConversationDetail(
       createdAtLabel: formatAbsolute(message.createdAt),
     }));
 
+  const sourceConversation = context.conversations.find((conversation) => conversation.id === conversationId);
+  const mailboxFlags = buildMailboxFlags(row.visibilityStatus);
+
   return {
     conversationId: row.id,
     title: row.subject,
     summary: row.preview,
     composerMode: deriveComposerMode(context.messages.filter((message) => message.conversationId === conversationId)),
+    mailbox: {
+      visibilityStatus: row.visibilityStatus,
+      snoozedUntil: row.snoozedUntil,
+      snoozedUntilLabel: row.snoozedUntilLabel,
+      deletedAtLabel: row.visibilityStatus === "deleted" && sourceConversation?.deletedAt
+        ? formatAbsolute(sourceConversation.deletedAt)
+        : null,
+      deleteReason: row.visibilityStatus === "deleted" ? (sourceConversation?.deleteReason ?? null) : null,
+      ...mailboxFlags,
+    },
     ticket: row.ticket,
     customer: row.customer,
     suggestedActions: deriveSuggestedActions(row),
     timeline,
     availableAssignees: buildAssigneeOptions(context),
+    availableTags: buildTagOptions(context),
   };
+}
+
+async function createWorkflowMessage(
+  context: HelpdeskContext,
+  conversation: HelpConversation,
+  actorStaffId: string | null | undefined,
+  body: string,
+): Promise<void> {
+  const actor = actorStaffId ? context.staff.find((staff) => staff.id === actorStaffId) : null;
+  await db.insert(helpMessages).values({
+    tenantId: context.scope.tenantId,
+    propertyId: conversation.propertyId,
+    conversationId: conversation.id,
+    authorStaffId: actorStaffId ?? null,
+    messageType: "system",
+    authorLabel: "Workflow",
+    body: body.replaceAll("{actor}", actor?.name ?? "Operator"),
+    metadataJson: {},
+  });
 }
 
 export async function updateHelpConversationAssignee(
@@ -623,6 +722,7 @@ export async function updateHelpConversationAssignee(
   if (!context) return null;
   const conversation = context.conversations.find((item) => item.id === conversationId);
   if (!conversation) return null;
+  if (conversation.visibilityStatus === "deleted") return null;
 
   await ensureTicketForConversation(conversation, context.tickets.find((ticket) => ticket.conversationId === conversationId));
   const assignmentState: AssignmentState = assigneeStaffId ? "assigned" : "unassigned";
@@ -636,18 +736,13 @@ export async function updateHelpConversationAssignee(
     .where(and(eq(helpTickets.tenantId, context.scope.tenantId), eq(helpTickets.conversationId, conversationId)));
 
   if (actorStaffId) {
-    const actor = context.staff.find((staff) => staff.id === actorStaffId);
     const assignee = assigneeStaffId ? context.staff.find((staff) => staff.id === assigneeStaffId) : null;
-    await db.insert(helpMessages).values({
-      tenantId: context.scope.tenantId,
-      propertyId: context.scope.propertyId,
-      conversationId,
-      authorStaffId: actorStaffId,
-      messageType: "system",
-      authorLabel: "Workflow",
-      body: assignee ? `${actor?.name ?? "Operator"} assigned this conversation to ${assignee.name}.` : `${actor?.name ?? "Operator"} removed the assignee.`,
-      metadataJson: {},
-    });
+    await createWorkflowMessage(
+      context,
+      conversation,
+      actorStaffId,
+      assignee ? `{actor} assigned this conversation to ${assignee.name}.` : "{actor} removed the assignee.",
+    );
   }
 
   return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
@@ -664,6 +759,7 @@ export async function updateHelpConversationStatus(
   if (!context) return null;
   const conversation = context.conversations.find((item) => item.id === conversationId);
   if (!conversation) return null;
+  if (conversation.visibilityStatus === "deleted") return null;
 
   await ensureTicketForConversation(conversation, context.tickets.find((ticket) => ticket.conversationId === conversationId));
   const closedAt = status === "resolved" ? new Date() : null;
@@ -677,17 +773,7 @@ export async function updateHelpConversationStatus(
     .where(and(eq(helpTickets.tenantId, context.scope.tenantId), eq(helpTickets.conversationId, conversationId)));
 
   if (actorStaffId) {
-    const actor = context.staff.find((staff) => staff.id === actorStaffId);
-    await db.insert(helpMessages).values({
-      tenantId: context.scope.tenantId,
-      propertyId: context.scope.propertyId,
-      conversationId,
-      authorStaffId: actorStaffId,
-      messageType: "system",
-      authorLabel: "Workflow",
-      body: `${actor?.name ?? "Operator"} changed status to ${status.replaceAll("_", " ")}.`,
-      metadataJson: {},
-    });
+    await createWorkflowMessage(context, conversation, actorStaffId, `{actor} changed status to ${status.replaceAll("_", " ")}.`);
   }
 
   return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
@@ -704,6 +790,7 @@ export async function updateHelpConversationPriority(
   if (!context) return null;
   const conversation = context.conversations.find((item) => item.id === conversationId);
   if (!conversation) return null;
+  if (conversation.visibilityStatus === "deleted") return null;
 
   await ensureTicketForConversation(conversation, context.tickets.find((ticket) => ticket.conversationId === conversationId));
 
@@ -716,17 +803,187 @@ export async function updateHelpConversationPriority(
     .where(and(eq(helpTickets.tenantId, context.scope.tenantId), eq(helpTickets.conversationId, conversationId)));
 
   if (actorStaffId) {
-    const actor = context.staff.find((staff) => staff.id === actorStaffId);
-    await db.insert(helpMessages).values({
-      tenantId: context.scope.tenantId,
-      propertyId: context.scope.propertyId,
-      conversationId,
-      authorStaffId: actorStaffId,
-      messageType: "system",
-      authorLabel: "Workflow",
-      body: `${actor?.name ?? "Operator"} changed priority to ${priority}.`,
-      metadataJson: {},
-    });
+    await createWorkflowMessage(context, conversation, actorStaffId, `{actor} changed priority to ${priority}.`);
+  }
+
+  return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
+}
+
+export async function updateHelpConversationSnooze(
+  conversationId: string,
+  snoozedUntil: string | null,
+  tenantId?: string | null,
+  propertyId?: string | null,
+  actorStaffId?: string | null,
+): Promise<ConversationDetail | null> {
+  const context = await loadHelpdeskContext(tenantId, propertyId, actorStaffId);
+  if (!context) return null;
+  const conversation = context.conversations.find((item) => item.id === conversationId);
+  if (!conversation) return null;
+  if (!canMutateMailboxVisibility(conversation)) return null;
+
+  const nextSnoozedDate = snoozedUntil ? new Date(snoozedUntil) : null;
+  const currentSnoozedDate = conversation.snoozedUntil ?? null;
+  const nextSnoozedIso = nextSnoozedDate ? nextSnoozedDate.toISOString() : null;
+  const currentSnoozedIso = currentSnoozedDate ? currentSnoozedDate.toISOString() : null;
+
+  if (nextSnoozedIso === currentSnoozedIso) {
+    return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
+  }
+
+  await db.update(helpConversations)
+    .set({
+      snoozedUntil: nextSnoozedDate,
+      snoozedByStaffId: nextSnoozedDate ? (actorStaffId ?? null) : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(helpConversations.id, conversationId));
+
+  if (actorStaffId) {
+    await createWorkflowMessage(
+      context,
+      conversation,
+      actorStaffId,
+      nextSnoozedDate
+        ? `{actor} snoozed this conversation until ${formatAbsolute(nextSnoozedDate)}.`
+        : "{actor} removed the snooze on this conversation.",
+    );
+  }
+
+  return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
+}
+
+export async function updateHelpConversationArchiveState(
+  conversationId: string,
+  archived: boolean,
+  tenantId?: string | null,
+  propertyId?: string | null,
+  actorStaffId?: string | null,
+): Promise<ConversationDetail | null> {
+  const context = await loadHelpdeskContext(tenantId, propertyId, actorStaffId);
+  if (!context) return null;
+  const conversation = context.conversations.find((item) => item.id === conversationId);
+  if (!conversation) return null;
+  if (!canMutateMailboxVisibility(conversation)) return null;
+  if (!archived && conversation.visibilityStatus !== "archived") {
+    return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
+  }
+
+  const nextVisibilityStatus: ConversationVisibilityStatus = archived ? "archived" : "active";
+  await db.update(helpConversations)
+    .set({
+      visibilityStatus: nextVisibilityStatus,
+      previousVisibilityStatus: archived ? conversation.visibilityStatus ?? "active" : null,
+      visibilityChangedAt: new Date(),
+      visibilityChangedByStaffId: actorStaffId ?? null,
+      snoozedUntil: archived ? null : conversation.snoozedUntil,
+      snoozedByStaffId: archived ? null : conversation.snoozedByStaffId,
+      updatedAt: new Date(),
+    })
+    .where(eq(helpConversations.id, conversationId));
+
+  if (actorStaffId) {
+    await createWorkflowMessage(
+      context,
+      conversation,
+      actorStaffId,
+      archived ? "{actor} archived this conversation." : "{actor} restored this conversation from archived to active.",
+    );
+  }
+
+  return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
+}
+
+export async function updateHelpConversationSpamState(
+  conversationId: string,
+  spam: boolean,
+  tenantId?: string | null,
+  propertyId?: string | null,
+  actorStaffId?: string | null,
+): Promise<ConversationDetail | null> {
+  const context = await loadHelpdeskContext(tenantId, propertyId, actorStaffId);
+  if (!context) return null;
+  const conversation = context.conversations.find((item) => item.id === conversationId);
+  if (!conversation) return null;
+  if (!canMutateMailboxVisibility(conversation)) return null;
+  if (!spam && conversation.visibilityStatus !== "spam") {
+    return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
+  }
+
+  const nextVisibilityStatus: ConversationVisibilityStatus = spam ? "spam" : "active";
+  await db.update(helpConversations)
+    .set({
+      visibilityStatus: nextVisibilityStatus,
+      previousVisibilityStatus: spam ? conversation.visibilityStatus ?? "active" : null,
+      visibilityChangedAt: new Date(),
+      visibilityChangedByStaffId: actorStaffId ?? null,
+      snoozedUntil: spam ? null : conversation.snoozedUntil,
+      snoozedByStaffId: spam ? null : conversation.snoozedByStaffId,
+      updatedAt: new Date(),
+    })
+    .where(eq(helpConversations.id, conversationId));
+
+  if (actorStaffId) {
+    await createWorkflowMessage(
+      context,
+      conversation,
+      actorStaffId,
+      spam ? "{actor} marked this conversation as spam." : "{actor} restored this conversation from spam to active.",
+    );
+  }
+
+  return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
+}
+
+export async function updateHelpConversationSoftDeleteState(
+  conversationId: string,
+  deleted: boolean,
+  deleteReason: string | null,
+  tenantId?: string | null,
+  propertyId?: string | null,
+  actorStaffId?: string | null,
+): Promise<ConversationDetail | null> {
+  const context = await loadHelpdeskContext(tenantId, propertyId, actorStaffId);
+  if (!context) return null;
+  const conversation = context.conversations.find((item) => item.id === conversationId);
+  if (!conversation) return null;
+
+  const now = new Date();
+  const restoredVisibilityStatus = ((conversation.previousVisibilityStatus as ConversationVisibilityStatus | null) ?? "active");
+  await db.update(helpConversations)
+    .set(deleted ? {
+      visibilityStatus: "deleted",
+      previousVisibilityStatus: (
+        conversation.visibilityStatus === "deleted"
+          ? ((conversation.previousVisibilityStatus as ConversationVisibilityStatus | null) ?? "active")
+          : ((conversation.visibilityStatus ?? "active") as ConversationVisibilityStatus)
+      ),
+      visibilityChangedAt: now,
+      visibilityChangedByStaffId: actorStaffId ?? null,
+      snoozedUntil: null,
+      snoozedByStaffId: null,
+      deletedAt: now,
+      deletedByStaffId: actorStaffId ?? null,
+      deleteReason,
+      updatedAt: now,
+    } : {
+      visibilityStatus: restoredVisibilityStatus,
+      previousVisibilityStatus: null,
+      visibilityChangedAt: now,
+      visibilityChangedByStaffId: actorStaffId ?? null,
+      updatedAt: now,
+    })
+    .where(eq(helpConversations.id, conversationId));
+
+  if (actorStaffId) {
+    await createWorkflowMessage(
+      context,
+      conversation,
+      actorStaffId,
+      deleted
+        ? `{actor} moved this conversation to trash${deleteReason ? ` (${deleteReason}).` : "."}`
+        : `{actor} restored this conversation from trash to ${restoredVisibilityStatus}.`,
+    );
   }
 
   return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
@@ -743,6 +1000,7 @@ export async function addHelpConversationInternalNote(
   if (!context) return null;
   const conversation = context.conversations.find((item) => item.id === conversationId);
   if (!conversation) return null;
+  if (conversation.visibilityStatus === "deleted") return null;
 
   await ensureTicketForConversation(conversation, context.tickets.find((ticket) => ticket.conversationId === conversationId));
   const trimmed = body.trim();
@@ -751,7 +1009,7 @@ export async function addHelpConversationInternalNote(
   const actor = context.staff.find((staff) => staff.id === actorStaffId);
   await db.insert(helpMessages).values({
     tenantId: context.scope.tenantId,
-    propertyId: context.scope.propertyId,
+    propertyId: conversation.propertyId,
     conversationId,
     authorStaffId: actorStaffId ?? null,
     messageType: "internal_note",
@@ -767,6 +1025,150 @@ export async function addHelpConversationInternalNote(
   await db.update(helpTickets)
     .set({ updatedAt: new Date() })
     .where(and(eq(helpTickets.tenantId, context.scope.tenantId), eq(helpTickets.conversationId, conversationId)));
+
+  return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
+}
+
+export async function replyToHelpConversation(
+  conversationId: string,
+  body: string,
+  status?: ConversationStatus | null,
+  tenantId?: string | null,
+  propertyId?: string | null,
+  actorStaffId?: string | null,
+): Promise<ConversationDetail | null> {
+  const context = await loadHelpdeskContext(tenantId, propertyId, actorStaffId);
+  if (!context) return null;
+  const conversation = context.conversations.find((item) => item.id === conversationId);
+  if (!conversation) return null;
+  if (conversation.visibilityStatus === "deleted") return null;
+
+  const trimmed = body.trim();
+  if (!trimmed) return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
+
+  const ticket = await ensureTicketForConversation(
+    conversation,
+    context.tickets.find((existingTicket) => existingTicket.conversationId === conversationId),
+  );
+  const actor = context.staff.find((staff) => staff.id === actorStaffId);
+  const nextStatus = status ?? "waiting_on_customer";
+  const now = new Date();
+
+  await db.insert(helpMessages).values({
+    tenantId: context.scope.tenantId,
+    propertyId: conversation.propertyId,
+    conversationId,
+    authorStaffId: actorStaffId ?? null,
+    messageType: "teammate",
+    authorLabel: actor?.name ?? "Operator",
+    body: trimmed,
+    metadataJson: {
+      delivery: {
+        recordedAt: now.toISOString(),
+        mode: "recorded",
+        ...(actor?.email ? { from: actor.email } : {}),
+      },
+    },
+  });
+
+  await db.update(helpConversations)
+    .set({
+      preview: trimmed.slice(0, 200),
+      lastMessageAt: now,
+      messageCount: conversation.messageCount + 1,
+      unreadCount: 0,
+      status: nextStatus,
+      closedAt: nextStatus === "resolved" ? now : null,
+      updatedAt: now,
+    })
+    .where(eq(helpConversations.id, conversationId));
+
+  await db.update(helpTickets)
+    .set({
+      status: nextStatus,
+      resolvedAt: nextStatus === "resolved" ? now : null,
+      firstResponseAt: ticket.firstResponseAt ?? now,
+      updatedAt: now,
+    })
+    .where(and(eq(helpTickets.tenantId, context.scope.tenantId), eq(helpTickets.conversationId, conversationId)));
+
+  return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
+}
+
+export async function addHelpConversationTag(
+  conversationId: string,
+  tagId: string,
+  tenantId?: string | null,
+  propertyId?: string | null,
+  actorStaffId?: string | null,
+): Promise<ConversationDetail | null> {
+  const context = await loadHelpdeskContext(tenantId, propertyId, actorStaffId);
+  if (!context) return null;
+  const conversation = context.conversations.find((item) => item.id === conversationId);
+  if (!conversation) return null;
+  if (conversation.visibilityStatus === "deleted") return null;
+
+  const tag = context.tags.find((item) => item.id === tagId);
+  if (!tag) return null;
+  if (tag.propertyId && tag.propertyId !== conversation.propertyId) return null;
+
+  const existingRelation = context.conversationTags.find((item) => item.conversationId === conversationId && item.tagId === tagId);
+  if (!existingRelation) {
+    await db.insert(helpConversationTags).values({
+      tenantId: context.scope.tenantId,
+      propertyId: conversation.propertyId,
+      conversationId,
+      tagId,
+    }).onConflictDoNothing({
+      target: [helpConversationTags.conversationId, helpConversationTags.tagId],
+    });
+
+    await db.update(helpConversations)
+      .set({ updatedAt: new Date() })
+      .where(eq(helpConversations.id, conversationId));
+
+    if (actorStaffId) {
+      await createWorkflowMessage(context, conversation, actorStaffId, `{actor} added tag ${tag.name}.`);
+    }
+  }
+
+  return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
+}
+
+export async function removeHelpConversationTag(
+  conversationId: string,
+  tagId: string,
+  tenantId?: string | null,
+  propertyId?: string | null,
+  actorStaffId?: string | null,
+): Promise<ConversationDetail | null> {
+  const context = await loadHelpdeskContext(tenantId, propertyId, actorStaffId);
+  if (!context) return null;
+  const conversation = context.conversations.find((item) => item.id === conversationId);
+  if (!conversation) return null;
+  if (conversation.visibilityStatus === "deleted") return null;
+
+  const tag = context.tags.find((item) => item.id === tagId);
+  if (!tag) return null;
+  if (tag.propertyId && tag.propertyId !== conversation.propertyId) return null;
+
+  const existingRelation = context.conversationTags.find((item) => item.conversationId === conversationId && item.tagId === tagId);
+  if (existingRelation) {
+    await db.delete(helpConversationTags)
+      .where(and(
+        eq(helpConversationTags.tenantId, context.scope.tenantId),
+        eq(helpConversationTags.conversationId, conversationId),
+        eq(helpConversationTags.tagId, tagId),
+      ));
+
+    await db.update(helpConversations)
+      .set({ updatedAt: new Date() })
+      .where(eq(helpConversations.id, conversationId));
+
+    if (actorStaffId) {
+      await createWorkflowMessage(context, conversation, actorStaffId, `{actor} removed tag ${tag.name}.`);
+    }
+  }
 
   return getHelpConversationDetail(conversationId, context.scope.tenantId, context.scope.propertyId, actorStaffId);
 }
@@ -809,11 +1211,15 @@ export async function getPropertiesSummary(tenantId?: string | null): Promise<Pr
     id: helpConversations.id,
     propertyId: helpConversations.propertyId,
     status: helpConversations.status,
+    visibilityStatus: helpConversations.visibilityStatus,
+    snoozedUntil: helpConversations.snoozedUntil,
   }).from(helpConversations).where(eq(helpConversations.tenantId, tenantId));
 
   const openByProperty = new Map<string, number>();
   for (const conv of allConversations) {
     if (conv.status === "resolved") continue;
+    if (conv.visibilityStatus !== "active") continue;
+    if (isFutureSnooze(conv.snoozedUntil)) continue;
     if (!conv.propertyId) continue;
     openByProperty.set(conv.propertyId, (openByProperty.get(conv.propertyId) ?? 0) + 1);
   }
@@ -844,11 +1250,12 @@ export async function getHelpdeskDashboardMetrics(
   }
 
   const rows = sortConversationRows(buildConversationRows(context));
-  const openRows = rows.filter((row) => row.status !== "resolved");
-  const byStatus = statusOrder.map((status) => ({ status, count: rows.filter((row) => row.status === status).length }));
+  const operationalRows = rows.filter((row) => isOperationalConversation(row));
+  const openRows = operationalRows.filter((row) => row.status !== "resolved");
+  const byStatus = statusOrder.map((status) => ({ status, count: operationalRows.filter((row) => row.status === status).length }));
 
   const inboxMap = new Map<string, HelpdeskInboxMetric>();
-  for (const row of rows) {
+  for (const row of operationalRows) {
     const existing = inboxMap.get(row.inboxLabel) ?? { inboxLabel: row.inboxLabel, count: 0, unassignedCount: 0, atRiskCount: 0 };
     existing.count += 1;
     if (!row.assignee) existing.unassignedCount += 1;
