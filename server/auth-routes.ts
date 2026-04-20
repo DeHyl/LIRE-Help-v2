@@ -1,8 +1,10 @@
 import { Router } from "express";
+import { z } from "zod";
 import { db } from "./db.js";
-import { staffUsers } from "../shared/schema.js";
-import { eq } from "drizzle-orm";
-import { verifyPassword, setStaffSession, safeUser } from "./helpers/authHelpers.js";
+import { invitations, staffUsers } from "../shared/schema.js";
+import { isStaffRole } from "../shared/roles.js";
+import { and, eq, isNull } from "drizzle-orm";
+import { hashPassword, verifyPassword, setStaffSession, safeUser } from "./helpers/authHelpers.js";
 import { requireStaff } from "./middleware/auth.js";
 import { buildAuthorizationUrl, handleOidcCallback } from "./platform/oidc.js";
 import { readOidcProvider, readOidcProviders } from "./platform/oidc-providers.js";
@@ -73,6 +75,97 @@ router.post("/login", async (req, res) => {
   } catch (err) {
     console.error("[auth] login error:", err);
     return res.status(500).json({ message: "Login error" });
+  }
+});
+
+// ─── Signup (invitation-only) ────────────────────────────────────────────────
+//
+// Trades a one-time invitation token for a staff_users row. The token carries
+// the role/tenant/property scope chosen by the inviter, so the recipient
+// cannot pick their own role here. The token row is marked claimed in the
+// same transaction as the user insert, so two concurrent claims can't both
+// win.
+const signupBody = z.object({
+  token: z.string().min(16).max(256),
+  password: z.string().min(8).max(128),
+  name: z.string().min(1).max(120).transform((v) => v.trim()),
+  whatsappNumber: z.string().max(32).optional().nullable(),
+});
+
+router.post("/signup", async (req, res) => {
+  try {
+    const parsed = signupBody.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid payload", issues: parsed.error.issues });
+    }
+
+    const [invite] = await db.select().from(invitations).where(eq(invitations.token, parsed.data.token)).limit(1);
+    if (!invite) return res.status(404).json({ message: "Invitation not found or expired" });
+    if (invite.claimedAt || invite.revokedAt || invite.expiresAt.getTime() < Date.now()) {
+      return res.status(404).json({ message: "Invitation not found or expired" });
+    }
+    if (!isStaffRole(invite.role)) {
+      // Defensive: a stale invite created before a role was renamed/removed.
+      return res.status(409).json({ message: "Invitation role is no longer valid" });
+    }
+
+    const passwordHash = await hashPassword(parsed.data.password);
+
+    const result = await db.transaction(async (tx) => {
+      // Re-check + lock the invitation row for the duration of the txn.
+      const [claim] = await tx
+        .update(invitations)
+        .set({ claimedAt: new Date() })
+        .where(and(
+          eq(invitations.id, invite.id),
+          isNull(invitations.claimedAt),
+          isNull(invitations.revokedAt),
+        ))
+        .returning();
+      if (!claim) return { conflict: true as const };
+
+      try {
+        const [created] = await tx.insert(staffUsers).values({
+          email: invite.email,
+          passwordHash,
+          name: parsed.data.name,
+          role: invite.role,
+          tenantId: invite.tenantId,
+          propertyId: invite.propertyId,
+          whatsappNumber: parsed.data.whatsappNumber ?? null,
+        }).returning();
+
+        await tx.update(invitations)
+          .set({ claimedByStaffId: created.id })
+          .where(eq(invitations.id, invite.id));
+
+        return { conflict: false as const, user: created };
+      } catch (err: any) {
+        if (err?.code === "23505") {
+          return { conflict: false as const, duplicate: true as const };
+        }
+        throw err;
+      }
+    });
+
+    if (result.conflict) {
+      return res.status(409).json({ message: "Invitation already claimed" });
+    }
+    if ("duplicate" in result && result.duplicate) {
+      return res.status(409).json({ message: "A user with that email already exists" });
+    }
+
+    await setStaffSession(req, result.user!);
+    req.session.save((err) => {
+      if (err) {
+        console.error("[signup] session save error:", err);
+        return res.status(500).json({ message: "Session error" });
+      }
+      return res.status(201).json({ user: safeUser(result.user!) });
+    });
+  } catch (err) {
+    console.error("[signup]", err);
+    return res.status(500).json({ message: "Signup error" });
   }
 });
 

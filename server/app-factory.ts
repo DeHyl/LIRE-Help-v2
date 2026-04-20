@@ -163,6 +163,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<express.E
   const { default: propertiesRoutes } = await import("./properties-routes.js");
   const { default: agentsRoutes } = await import("./agents-routes.js");
   const { default: staffRoutes } = await import("./staff-routes.js");
+  const { default: invitationsRoutes } = await import("./invitations-routes.js");
   const { default: knowledgeRoutes } = await import("./knowledge-routes.js");
   const { default: platformSessionsRoutes } = await import("./platform-sessions-routes.js");
   const { default: helpdeskRoutes } = await import("./helpdesk-routes.js");
@@ -182,6 +183,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<express.E
   app.use("/api/properties", propertiesRoutes);
   app.use("/api/agents", agentsRoutes);
   app.use("/api/staff", staffRoutes);
+  app.use("/api/invitations", invitationsRoutes);
   app.use("/api/knowledge", knowledgeRoutes);
   app.use("/api/platform-sessions", platformSessionsRoutes);
   app.use("/api/helpdesk", helpdeskRoutes);
@@ -554,6 +556,7 @@ RESTRICTIONS:
     const marketingDir = path.join(root, "public");
     const spaRoutePrefixes = [
       "/login",
+      "/signup",
       "/dashboard",
       "/inbox",
       "/tickets",

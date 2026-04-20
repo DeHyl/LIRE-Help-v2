@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { canInviteAnyone, type StaffRole } from "../../../shared/roles";
 
-export type StaffRole = "superadmin" | "owner" | "manager" | "staff" | "readonly";
+export type { StaffRole };
 
 export interface StaffUser {
   id: string;
@@ -84,4 +85,10 @@ export function useCanAccess(...roles: StaffRole[]): boolean {
   if (!user) return false;
   if (roles.length === 0) return true;
   return roles.includes(user.role);
+}
+
+export function useCanInvite(): boolean {
+  const { user } = useAuth();
+  if (!user) return false;
+  return canInviteAnyone(user.role);
 }
