@@ -1,5 +1,5 @@
 import {
-  pgTable, text, integer, boolean, timestamp, varchar, jsonb, doublePrecision, uniqueIndex,
+  pgTable, text, integer, boolean, timestamp, varchar, json, jsonb, doublePrecision, index, uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -671,3 +671,56 @@ export const tokenUsage = pgTable("token_usage", {
 
 export type TokenUsage = typeof tokenUsage.$inferSelect;
 export type InsertTokenUsage = typeof tokenUsage.$inferInsert;
+
+// ─── Staff Sessions ─────────────────────────────────────────────────────────
+//
+// Session store for express-session + connect-pg-simple. The table is also
+// created at runtime in server/app-factory.ts so the app can boot against a
+// fresh DB without a migration. It is declared here so `drizzle-kit push`
+// recognizes it and leaves it alone — without this row, push sees drift and
+// tries to drop the live table.
+
+export const staffSessions = pgTable("staff_sessions", {
+  sid: varchar("sid").primaryKey(),
+  sess: json("sess").notNull(),
+  expire: timestamp("expire", { precision: 6 }).notNull(),
+}, (table) => ({
+  expireIdx: index("idx_staff_sessions_expire").on(table.expire),
+}));
+
+// ─── Channel Configs ────────────────────────────────────────────────────────
+//
+// Per-tenant configuration for each communication channel (email, phone,
+// whatsapp, switch, slack, messenger). One row per (tenant, channelType).
+// Provider-specific fields live in configJson so each channel can evolve its
+// schema independently without migrations. Secrets (API keys, tokens) are
+// stored encrypted at rest by the application layer before being persisted —
+// the column itself just holds opaque JSON.
+
+export const CHANNEL_TYPES = ["email", "phone", "whatsapp", "switch", "slack", "messenger"] as const;
+export type ChannelType = typeof CHANNEL_TYPES[number];
+
+export interface EmailChannelConfig {
+  provider: "sendgrid" | "smtp" | "ses" | "none";
+  fromAddress: string | null;
+  fromName: string | null;
+  replyToAddress: string | null;
+  forwardingAddress: string | null;
+  signatureHtml: string | null;
+}
+
+export const channelConfigs = pgTable("channel_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  channelType: text("channel_type").notNull(),
+  enabled: boolean("enabled").notNull().default(false),
+  configJson: jsonb("config_json").$type<Record<string, unknown>>().notNull().default({}),
+  updatedByStaffId: varchar("updated_by_staff_id").references(() => staffUsers.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  tenantChannelUq: uniqueIndex("channel_configs_tenant_channel_uq").on(table.tenantId, table.channelType),
+}));
+
+export type ChannelConfig = typeof channelConfigs.$inferSelect;
+export type InsertChannelConfig = typeof channelConfigs.$inferInsert;
