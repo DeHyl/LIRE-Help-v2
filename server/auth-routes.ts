@@ -1,13 +1,35 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "./db.js";
-import { invitations, staffUsers } from "../shared/schema.js";
+import { invitations, staffUsers, type StaffUser } from "../shared/schema.js";
 import { isStaffRole } from "../shared/roles.js";
 import { and, eq, isNull } from "drizzle-orm";
 import { hashPassword, verifyPassword, setStaffSession, safeUser } from "./helpers/authHelpers.js";
 import { requireStaff } from "./middleware/auth.js";
 import { buildAuthorizationUrl, handleOidcCallback } from "./platform/oidc.js";
 import { readOidcProvider, readOidcProviders } from "./platform/oidc-providers.js";
+import { loginLimiter } from "./helpers/rate-limiters.js";
+
+// H7: regenerate the session id on successful authentication. Prevents session
+// fixation — an attacker who managed to plant a session cookie pre-login can no
+// longer ride it post-login. We regenerate first, then seed the new session
+// with the staff context and save.
+function regenerateAndAuthenticate(req: Parameters<typeof setStaffSession>[0], user: StaffUser): Promise<void> {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate(async (regenErr) => {
+      if (regenErr) return reject(regenErr);
+      try {
+        await setStaffSession(req, user);
+        req.session.save((saveErr) => {
+          if (saveErr) return reject(saveErr);
+          resolve();
+        });
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
+}
 
 const router = Router();
 
@@ -43,7 +65,7 @@ router.get("/oidc/:provider/callback", async (req, res) => {
   await handleOidcCallback(req, res, cfg);
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body as { email?: string; password?: string };
     if (!email || !password) {
@@ -64,14 +86,13 @@ router.post("/login", async (req, res) => {
       .set({ lastLoginAt: new Date(), updatedAt: new Date() })
       .where(eq(staffUsers.id, user.id));
 
-    await setStaffSession(req, user);
-    req.session.save((err) => {
-      if (err) {
-        console.error("[auth] session save error:", err);
-        return res.status(500).json({ message: "Session error" });
-      }
-      return res.json({ user: safeUser(user) });
-    });
+    try {
+      await regenerateAndAuthenticate(req, user);
+    } catch (err) {
+      console.error("[auth] session regenerate error:", err);
+      return res.status(500).json({ message: "Session error" });
+    }
+    return res.json({ user: safeUser(user) });
   } catch (err) {
     console.error("[auth] login error:", err);
     return res.status(500).json({ message: "Login error" });
@@ -155,24 +176,31 @@ router.post("/signup", async (req, res) => {
       return res.status(409).json({ message: "A user with that email already exists" });
     }
 
-    await setStaffSession(req, result.user!);
-    req.session.save((err) => {
-      if (err) {
-        console.error("[signup] session save error:", err);
-        return res.status(500).json({ message: "Session error" });
-      }
-      return res.status(201).json({ user: safeUser(result.user!) });
-    });
+    try {
+      await regenerateAndAuthenticate(req, result.user!);
+    } catch (err) {
+      console.error("[signup] session regenerate error:", err);
+      return res.status(500).json({ message: "Session error" });
+    }
+    return res.status(201).json({ user: safeUser(result.user!) });
   } catch (err) {
     console.error("[signup]", err);
     return res.status(500).json({ message: "Signup error" });
   }
 });
 
+// H18: mirror the session cookie's options on clearCookie so every browser
+// agrees on "that cookie". Without matching domain/path/secure/sameSite,
+// some browsers retain the cookie after logout.
 router.post("/logout", (req, res) => {
+  const isProd = process.env.NODE_ENV === "production";
   req.session.destroy(() => {
     res.clearCookie("connect.sid", {
       domain: process.env.COOKIE_DOMAIN || undefined,
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProd,
     });
     res.json({ ok: true });
   });
