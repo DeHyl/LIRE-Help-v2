@@ -42,5 +42,19 @@ export function logTokenUsage(params: LogTokenParams): void {
       costUsd,
     })
     .then(() => {})
-    .catch((err) => { console.error("[token-logger] Failed:", err); });
+    .catch((err) => {
+      // H16: grep-friendly tag so ops can find dropped cost records in Railway
+      // logs. Payload shape kept small so the structured line is readable.
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[token-logger:lost]", JSON.stringify({
+        operation: params.operation,
+        model: params.model,
+        tenantId: params.tenantId ?? null,
+        propertyId: params.propertyId ?? null,
+        inputTokens: params.inputTokens,
+        outputTokens: params.outputTokens,
+        costUsd,
+        error: message.slice(0, 200),
+      }));
+    });
 }
